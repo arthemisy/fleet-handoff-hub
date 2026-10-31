@@ -1,0 +1,11 @@
+CREATE TABLE public.managers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL UNIQUE, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE public.vehicles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), manager_id uuid REFERENCES public.managers(id) ON DELETE SET NULL, model text NOT NULL DEFAULT '', plate text NOT NULL, obra text, projeto text, local text, encarregado text, motorista text, efetivos int NOT NULL DEFAULT 0, status text NOT NULL DEFAULT 'Ativo', observacao text, linked_plates text, km int, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE public.expenses (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), ext_id int UNIQUE, plate text NOT NULL, vehicle_name text, tipo text, expense_date date, status text, amount numeric(12,2) NOT NULL DEFAULT 0, description text, provider text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE public.checklists (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plate text NOT NULL, model text, responsible text, obra text, checked_at text, km int, next_belt_km int, next_oil_km int, items jsonb NOT NULL DEFAULT '[]', notes text, raw_text text, attachments text[] NOT NULL DEFAULT '{}', created_by uuid, created_at timestamptz NOT NULL DEFAULT now());
+DO $$ DECLARE t text; BEGIN FOREACH t IN ARRAY ARRAY['managers','vehicles','expenses','checklists'] LOOP
+ EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated; GRANT ALL ON public.%I TO service_role; ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY; CREATE POLICY "team all" ON public.%I FOR ALL TO authenticated USING (true) WITH CHECK (true); ALTER PUBLICATION supabase_realtime ADD TABLE public.%I;', t,t,t,t,t);
+END LOOP; END $$;
+INSERT INTO public.managers(name) VALUES ('Cleiton Dias'),('Maicon Dias'),('Orlando Tambani'),('Rafael Pupulim'),('William Muniz');
+CREATE POLICY "team read checklist files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id='checklists');
+CREATE POLICY "team upload checklist files" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id='checklists');
+CREATE POLICY "team delete checklist files" ON storage.objects FOR DELETE TO authenticated USING (bucket_id='checklists');

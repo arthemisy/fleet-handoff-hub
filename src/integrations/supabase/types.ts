@@ -14,7 +14,182 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      checklists: {
+        Row: {
+          attachments: string[]
+          checked_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          items: Json
+          km: number | null
+          model: string | null
+          next_belt_km: number | null
+          next_oil_km: number | null
+          notes: string | null
+          obra: string | null
+          plate: string
+          raw_text: string | null
+          responsible: string | null
+        }
+        Insert: {
+          attachments?: string[]
+          checked_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          items?: Json
+          km?: number | null
+          model?: string | null
+          next_belt_km?: number | null
+          next_oil_km?: number | null
+          notes?: string | null
+          obra?: string | null
+          plate: string
+          raw_text?: string | null
+          responsible?: string | null
+        }
+        Update: {
+          attachments?: string[]
+          checked_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          items?: Json
+          km?: number | null
+          model?: string | null
+          next_belt_km?: number | null
+          next_oil_km?: number | null
+          notes?: string | null
+          obra?: string | null
+          plate?: string
+          raw_text?: string | null
+          responsible?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          expense_date: string | null
+          ext_id: number | null
+          id: string
+          plate: string
+          provider: string | null
+          status: string | null
+          tipo: string | null
+          vehicle_name: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          expense_date?: string | null
+          ext_id?: number | null
+          id?: string
+          plate: string
+          provider?: string | null
+          status?: string | null
+          tipo?: string | null
+          vehicle_name?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          expense_date?: string | null
+          ext_id?: number | null
+          id?: string
+          plate?: string
+          provider?: string | null
+          status?: string | null
+          tipo?: string | null
+          vehicle_name?: string | null
+        }
+        Relationships: []
+      }
+      managers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          created_at: string
+          efetivos: number
+          encarregado: string | null
+          id: string
+          km: number | null
+          linked_plates: string | null
+          local: string | null
+          manager_id: string | null
+          model: string
+          motorista: string | null
+          obra: string | null
+          observacao: string | null
+          plate: string
+          projeto: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          efetivos?: number
+          encarregado?: string | null
+          id?: string
+          km?: number | null
+          linked_plates?: string | null
+          local?: string | null
+          manager_id?: string | null
+          model?: string
+          motorista?: string | null
+          obra?: string | null
+          observacao?: string | null
+          plate: string
+          projeto?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          efetivos?: number
+          encarregado?: string | null
+          id?: string
+          km?: number | null
+          linked_plates?: string | null
+          local?: string | null
+          manager_id?: string | null
+          model?: string
+          motorista?: string | null
+          obra?: string | null
+          observacao?: string | null
+          plate?: string
+          projeto?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
