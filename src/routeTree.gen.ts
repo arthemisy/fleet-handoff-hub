@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
 import { Route as AuthenticatedGestorIdRouteImport } from './routes/_authenticated/gestor.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,9 +31,19 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedVeiculosRoute = AuthenticatedVeiculosRouteImport.update({
+  id: '/veiculos',
+  path: '/veiculos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedGestorIdRoute = AuthenticatedGestorIdRouteImport.update({
@@ -43,13 +55,17 @@ const AuthenticatedGestorIdRoute = AuthenticatedGestorIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/importar': typeof AuthenticatedImportarRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/veiculos': typeof AuthenticatedVeiculosRoute
   '/gestor/$id': typeof AuthenticatedGestorIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/importar': typeof AuthenticatedImportarRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/veiculos': typeof AuthenticatedVeiculosRoute
   '/gestor/$id': typeof AuthenticatedGestorIdRoute
 }
 export interface FileRoutesById {
@@ -57,20 +73,25 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
   '/_authenticated/gestor/$id': typeof AuthenticatedGestorIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/painel' | '/gestor/$id'
+  fullPaths:
+    '/' | '/auth' | '/importar' | '/painel' | '/veiculos' | '/gestor/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/painel' | '/gestor/$id'
+  to: '/' | '/auth' | '/importar' | '/painel' | '/veiculos' | '/gestor/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/importar'
     | '/_authenticated/painel'
+    | '/_authenticated/veiculos'
     | '/_authenticated/gestor/$id'
   fileRoutesById: FileRoutesById
 }
@@ -103,11 +124,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/importar': {
+      id: '/_authenticated/importar'
+      path: '/importar'
+      fullPath: '/importar'
+      preLoaderRoute: typeof AuthenticatedImportarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
       path: '/painel'
       fullPath: '/painel'
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/veiculos': {
+      id: '/_authenticated/veiculos'
+      path: '/veiculos'
+      fullPath: '/veiculos'
+      preLoaderRoute: typeof AuthenticatedVeiculosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/gestor/$id': {
@@ -121,12 +156,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+  AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
   AuthenticatedGestorIdRoute: typeof AuthenticatedGestorIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+  AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,
   AuthenticatedGestorIdRoute: AuthenticatedGestorIdRoute,
 }
 
