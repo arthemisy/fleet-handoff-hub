@@ -219,15 +219,16 @@ function SavedChecklist({ c }: { c: Checklist }) {
     setEf({
       plate: c.plate, model: c.model ?? "", responsible: c.responsible ?? "", obra: c.obra ?? "",
       checked_at: c.checked_at ?? "", km: c.km, next_belt_km: c.next_belt_km, next_oil_km: c.next_oil_km,
-      items: items.map((i) => ({ ...i })), notes: c.notes ?? "", raw_text: c.raw_text ?? "",
+      items: items.map((i) => ({ label: i.label, ok: i.ok, note: i.note ?? null })), notes: c.notes ?? "", raw_text: c.raw_text ?? "",
     });
     setEditing(true);
   }
   async function saveEdit() {
-    if (!ef.plate.trim()) { toast.error("Informe a placa"); return; }
+    const plate = (ef.plate ?? "").trim();
+    if (!plate) { toast.error("Informe a placa"); return; }
     setSaving(true);
     const { error } = await supabase.from("checklists").update({
-      plate: ef.plate.trim().toUpperCase(), model: ef.model || null, responsible: ef.responsible || null,
+      plate: plate.toUpperCase(), model: ef.model || null, responsible: ef.responsible || null,
       obra: ef.obra || null, checked_at: ef.checked_at || null, km: ef.km, next_belt_km: ef.next_belt_km,
       next_oil_km: ef.next_oil_km, items: ef.items, notes: ef.notes || null, raw_text: ef.raw_text || null,
     }).eq("id", c.id);
