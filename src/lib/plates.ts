@@ -17,7 +17,7 @@ export type PlateWarning = {
   plate: string;
   message: string;
   vehicleIds: string[];
-  suggestion?: string;
+  suggestion?: string | undefined;
 };
 
 /**
