@@ -14,6 +14,7 @@ import { createManualItems, reviewedItems } from "@/lib/checklist-template";
 import { freshChecklist, type ChecklistDraft } from "@/lib/checklist-draft";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { useIsAdmin } from "@/lib/use-admin";
+import { historyFor, resolveGestor } from "@/lib/assignments";
 import type { PlateCandidate } from "@/lib/plate-search";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,8 @@ export const Route = createFileRoute("/_authenticated/checklists")({
 
 
 type Shot = { file: Blob; url: string };
+const LBL = "text-base font-semibold";
+const INP = "h-12 text-base";
 
 async function shrink(file: File | Blob): Promise<Blob> {
   const bmp = await createImageBitmap(file);
@@ -71,6 +74,7 @@ function Checklists() {
   const [busy, setBusy] = useState<"" | "read" | "save">("");
   const [updateVehicle, setUpdateVehicle] = useState(true);
   const [filter, setFilter] = useState("");
+  const isAdmin = useIsAdmin();
 
   async function addFiles(files: Iterable<File | Blob>) {
     const next: Shot[] = [];
@@ -87,16 +91,17 @@ function Checklists() {
       const imgs = Array.from(e.clipboardData?.files ?? []).filter((x) => x.type.startsWith("image/"));
       if (imgs.length) addFiles(imgs);
     };
+    if (!isAdmin) return; // pasting prints is one of the admin-only ways in
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, []);
+  }, [isAdmin]);
 
   async function read() {
     setBusy("read");
     try {
       const images = await Promise.all(shots.map((s) => toDataURL(s.file)));
       const r = await parse({ data: { text, images, today: dateStr(new Date()) } });
-      setForm({ ...r, checked_date: r.checked_date || dateStr(new Date()), checked_time: r.checked_time || timeStr(new Date()) });
+      setForm({ ...r, gestor: form.gestor, funcionario: r.responsible || form.funcionario, checked_date: r.checked_date || dateStr(new Date()), checked_time: r.checked_time || timeStr(new Date()) });
       toast.success("Checklist lido — confira e salve");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha na leitura");
@@ -115,12 +120,56 @@ function Checklists() {
       plate: p.plate,
       model: prev.model || p.model || "",
       obra: prev.obra || p.obra || "",
-      responsible: prev.responsible || p.manager || "",
+      gestor: prev.gestor || p.manager || "",
     }));
+  }
+
+  /** Typing an employee's name in GESTOR moves it to FUNCIONÁRIO and fills in their boss. */
+  function checkGestor() {
+    const r = resolveGestor(form.gestor ?? "", f.managers, f.vehicles, f.assignments);
+    if (r.kind === "employee") {
+      setForm((p) => ({ ...p, gestor: r.manager.name, funcionario: p.funcionario || r.employee }));
+      toast.info(`${r.employee} é funcionário de ${r.manager.name}`);
+    }
+  }
+  const gestorInfo = resolveGestor(form.gestor ?? "", f.managers, f.vehicles, f.assignments);
+
+  /** The checklist hands the car over: new gestor's folder from that date on, the old one keeps what was spent before. */
+  async function handover(checklistId: string | null) {
+    let r = resolveGestor(form.gestor ?? "", f.managers, f.vehicles, f.assignments);
+    let employee = (form.funcionario ?? "").trim() || null;
+    if (r.kind === "empty") return;
+    if (r.kind === "employee") { employee = employee ?? r.employee; r = { kind: "manager", manager: r.manager }; }
+    let managerId: string;
+    if (r.kind === "new") {
+      const { data, error } = await supabase.from("managers").insert({ name: r.name }).select("id").single();
+      if (error) throw error;
+      managerId = data.id;
+      toast.success(`Pasta criada para ${r.name}`);
+    } else managerId = r.manager.id;
+    const date = form.checked_date || dateStr(new Date());
+    const plate = form.plate.trim().toUpperCase();
+    if (!match) {
+      const { error } = await supabase.from("vehicles").insert({ plate, model: form.model || "", manager_id: managerId, encarregado: employee, obra: form.obra || null, km: form.km, status: "Ativo" });
+      if (error) throw error;
+      await supabase.from("vehicle_assignments").insert({ plate, manager_id: managerId, employee, start_date: date, checklist_id: checklistId });
+      return;
+    }
+    if (match.manager_id !== managerId) {
+      if (!historyFor(match.plate, f.assignments).length && match.manager_id) {
+        // remember who had it before, so their earlier expenses stay with them
+        await supabase.from("vehicle_assignments").insert({ plate: match.plate, manager_id: match.manager_id, start_date: null });
+      }
+      const { error } = await supabase.from("vehicle_assignments").insert({ plate: match.plate, manager_id: managerId, employee, start_date: date, checklist_id: checklistId });
+      if (error) throw error;
+    }
+    const { error } = await supabase.from("vehicles").update({ manager_id: managerId, status: "Ativo", encarregado: employee ?? (match.manager_id === managerId ? match.encarregado : null) }).eq("id", match.id);
+    if (error) throw error;
   }
 
   async function save() {
     if (!form.plate?.trim()) { toast.error("Informe a placa"); return; }
+    if ((form.funcionario ?? "").trim() && !(form.gestor ?? "").trim()) { toast.error("Informe o gestor desse funcionário"); return; }
     setBusy("save");
     try {
       const items = reviewedItems(form.items);
@@ -132,13 +181,17 @@ function Checklists() {
         if (error) throw error;
         paths.push(path);
       }
-      const { error } = await supabase.from("checklists").insert({
-        plate: form.plate.trim().toUpperCase(), model: form.model || match?.model || null, responsible: form.responsible || null,
+      const gestorName = gestorInfo.kind === "manager" || gestorInfo.kind === "employee" ? gestorInfo.manager.name : (form.gestor ?? "").trim() || null;
+      const { data: saved, error } = await supabase.from("checklists").insert({
+        manager_name: gestorName, employee: (form.funcionario ?? "").trim() || null,
+        manager_id: gestorInfo.kind === "manager" || gestorInfo.kind === "employee" ? gestorInfo.manager.id : null,
+        plate: form.plate.trim().toUpperCase(), model: form.model || match?.model || null, responsible: (form.funcionario ?? "").trim() || gestorName,
         obra: form.obra || null, checked_date: form.checked_date || null, checked_time: form.checked_time || null, km: form.km, next_belt_km: form.next_belt_km,
         next_oil_km: form.next_oil_km, items, notes: form.notes || null, raw_text: text || null,
         attachments: paths, created_by: u.user?.id ?? null,
-      });
+      }).select("id").single();
       if (error) throw error;
+      await handover(saved.id);
       if (updateVehicle && match) {
         const upd: { km?: number; obra?: string } = {};
         if (form.km) upd.km = form.km;
@@ -170,39 +223,41 @@ function Checklists() {
           <Car className="h-5 w-5 text-primary" />
           <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-primary">Veículo conferido</h2>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="space-y-1 md:col-span-2">
-            <Label htmlFor="plate" className="text-sm font-bold">Placa</Label>
-            <PlateAutocomplete id="plate" placeholder="Comece a digitar a placa" className="h-11 font-display text-lg font-extrabold uppercase tracking-wider" value={form.plate ?? ""} onChange={(v) => setForm({ ...form, plate: v })} onPick={fillFrom} />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="space-y-1.5 md:col-span-2">
+            <Label htmlFor="plate" className={LBL}>Placa</Label>
+            <PlateAutocomplete id="plate" className="h-12 font-display text-xl font-extrabold uppercase tracking-wider" value={form.plate ?? ""} onChange={(v) => setForm({ ...form, plate: v })} onPick={fillFrom} />
           </div>
-          <div className="space-y-1"><Label>Modelo</Label><Input placeholder="Logan" value={form.model ?? ""} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
-          <div className="space-y-1"><Label>Responsável</Label><Input placeholder="Quem estava com o carro" value={form.responsible ?? ""} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
-          <div className="space-y-1 md:col-span-2"><Label>Obra</Label><Input placeholder="São Francisco do Sul" value={form.obra ?? ""} onChange={(e) => setForm({ ...form, obra: e.target.value })} /></div>
-          <div className="space-y-1">
-            <Label className="flex items-center justify-between">Data<button type="button" className="text-xs font-bold text-primary" onClick={() => setForm({ ...form, checked_date: dateStr(new Date()) })}>hoje</button></Label>
-            <Input type="date" className="h-11" value={form.checked_date ?? ""} onChange={(e) => setForm({ ...form, checked_date: e.target.value || null })} />
+          <div className="space-y-1.5 md:col-span-2"><Label className={LBL}>Modelo</Label><Input className={INP} value={form.model ?? ""} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
+          <div className="col-span-2 space-y-1.5">
+            <Label htmlFor="gestor" className={LBL}>Gestor{(form.funcionario ?? "").trim() && <span className="text-destructive"> *</span>}</Label>
+            <Input id="gestor" list="gestores-list" autoComplete="off" className={INP} value={form.gestor ?? ""} onChange={(e) => setForm({ ...form, gestor: e.target.value })} onBlur={checkGestor} />
+            <datalist id="gestores-list">{f.managers.map((m) => <option key={m.id} value={m.name} />)}</datalist>
+            {gestorInfo.kind === "new" && <p className="text-sm text-muted-foreground">Uma nova pasta será criada para <b>{gestorInfo.name}</b>.</p>}
           </div>
-          <div className="space-y-1">
-            <Label className="flex items-center justify-between">Hora<button type="button" className="text-xs font-bold text-primary" onClick={() => setForm({ ...form, checked_time: timeStr(new Date()) })}>agora</button></Label>
-            <Input type="time" className="h-11" value={form.checked_time ?? ""} onChange={(e) => setForm({ ...form, checked_time: e.target.value || null })} />
-          </div>
+          <div className="col-span-2 space-y-1.5"><Label htmlFor="func" className={LBL}>Funcionário</Label><Input id="func" className={INP} value={form.funcionario ?? ""} onChange={(e) => setForm({ ...form, funcionario: e.target.value })} /></div>
+          <div className="col-span-2 space-y-1.5 md:col-span-4"><Label className={LBL}>Obra</Label><Input className={INP} value={form.obra ?? ""} onChange={(e) => setForm({ ...form, obra: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label className={LBL}>Data</Label><Input type="date" className={INP} value={form.checked_date ?? ""} onChange={(e) => setForm({ ...form, checked_date: e.target.value || null })} /></div>
+          <div className="space-y-1.5"><Label className={LBL}>Hora</Label><Input type="time" className={INP} value={form.checked_time ?? ""} onChange={(e) => setForm({ ...form, checked_time: e.target.value || null })} /></div>
           {([["km", "KM atual"], ["next_belt_km", "Próx. correia (KM)"], ["next_oil_km", "Próx. óleo (KM)"]] as const).map(([k, l]) => (
-            <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
+            <div key={k} className="space-y-1.5"><Label className={LBL}>{l}</Label><Input type="number" inputMode="numeric" className={INP} value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
           ))}
         </div>
         {(form.plate ?? "").trim() && (match
-          ? <p className="rounded-lg bg-success/10 px-3 py-2 text-sm">Veículo encontrado: <b>{match.plate}</b> {match.model} · {f.managers.find((m) => m.id === match.manager_id)?.name ?? "sem gestor"}</p>
-          : <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">Placa não encontrada na frota — confira se digitou certo. O checklist será salvo mesmo assim.</p>)}
+          ? <p className="rounded-lg bg-success/10 px-3 py-2 text-base">Veículo encontrado: <b>{match.plate}</b> {match.model} · {f.managers.find((m) => m.id === match.manager_id)?.name ?? "sem gestor"}</p>
+          : <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">Placa não encontrada na frota — confira se digitou certo. Ao salvar com gestor, o carro é cadastrado.</p>)}
       </section>
 
       {/* 2. The message / prints the conference came from */}
       <section className="space-y-4 rounded-xl border bg-card p-4">
+{isAdmin && (
         <div className="space-y-1.5">
           <Label htmlFor="raw" className="flex items-center gap-1.5"><ClipboardPaste className="h-4 w-4" />Cole a mensagem do checklist</Label>
           <Textarea id="raw" rows={7} value={text} onChange={(e) => setText(e.target.value)} placeholder={"LOGAN  MIW-0436\nRES . IGOR\nHORÁRIO .10:52 SEXTA FEIRA.\nCARTÃO 🆗 …"} />
         </div>
+)}
         <div className="space-y-2">
-          <Label className="flex items-center gap-1.5"><Camera className="h-4 w-4" />Fotos e prints (também pode colar com Ctrl+V)</Label>
+          <Label className={cn(LBL, "flex items-center gap-1.5")}><Camera className="h-5 w-5" />Fotos</Label>
           {shots.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {shots.map((s, i) => (
@@ -216,10 +271,10 @@ function Checklists() {
           <PhotoButtons onFiles={addFiles} disabled={busy !== ""} />
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={read} disabled={busy !== "" || (!text.trim() && !shots.length)} className="font-bold">
+          {isAdmin && <Button onClick={read} disabled={busy !== "" || (!text.trim() && !shots.length)} className="font-bold">
             <Sparkles className="h-4 w-4" />{busy === "read" ? "Lendo…" : "Ler checklist automaticamente"}
-          </Button>
-          <Button variant="outline" onClick={() => setForm((p) => ({ ...p, items: createManualItems() }))}>
+          </Button>}
+          <Button size="lg" variant={isAdmin ? "outline" : "default"} className="text-base font-bold" onClick={() => setForm((p) => ({ ...p, items: createManualItems() }))}>
             <ClipboardList className="h-4 w-4" />Preencher manualmente
           </Button>
         </div>
@@ -236,7 +291,7 @@ function Checklists() {
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={save} disabled={busy !== "" || !hasContent} className="font-bold"><Save className="h-4 w-4" />{busy === "save" ? "Salvando…" : "Salvar checklist"}</Button>
+        <Button size="lg" onClick={save} disabled={busy !== "" || !hasContent} className="text-base font-bold"><Save className="h-4 w-4" />{busy === "save" ? "Salvando…" : "Salvar checklist"}</Button>
         <Button variant="ghost" onClick={clearAll}>Limpar</Button>
       </div>
 
