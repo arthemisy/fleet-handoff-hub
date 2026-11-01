@@ -231,8 +231,8 @@ function SavedChecklist({ c }: { c: Checklist }) {
   function startEdit() {
     setEf({
       plate: c.plate, model: c.model ?? "", responsible: c.responsible ?? "", obra: c.obra ?? "",
-      checked_date: c.checked_date ?? legacyDateTime(c.checked_at).checked_date ?? dateStr(new Date()),
-      checked_time: hm(c.checked_time) || legacyDateTime(c.checked_at).checked_time || timeStr(new Date()),
+      checked_date: c.checked_date ?? legacyDateTime(c.checked_at).checked_date,
+      checked_time: hm(c.checked_time) || legacyDateTime(c.checked_at).checked_time,
       km: c.km, next_belt_km: c.next_belt_km, next_oil_km: c.next_oil_km,
       items: items.map((i) => ({ label: i.label, ok: i.ok, note: i.note ?? null })), notes: c.notes ?? "", raw_text: c.raw_text ?? "",
     });
