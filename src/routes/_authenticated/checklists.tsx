@@ -347,7 +347,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
           <p className="font-display font-extrabold tracking-wide">{c.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{c.model}</span></p>
           <p className="truncate text-xs text-muted-foreground">{whenLabel(c)} · {c.obra ?? "—"} · {c.responsible ?? "—"}</p>
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${bad ? "bg-destructive/20 text-destructive" : "bg-success/20 text-success"}`}>{bad ? `${bad} pendência${bad > 1 ? "s" : ""}` : "Tudo OK"}</span>
+        <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-bold", items.length === 0 ? "bg-muted text-muted-foreground" : bad ? "bg-destructive/20 text-destructive" : "bg-success/20 text-success")}>{items.length === 0 ? "Sem pontos marcados" : bad ? `${bad} pendência${bad > 1 ? "s" : ""}` : `${items.length} ponto${items.length > 1 ? "s" : ""} OK`}</span>
         <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open && !editing && (
@@ -357,11 +357,15 @@ function SavedChecklist({ c }: { c: Checklist }) {
             {c.next_belt_km != null && <span>Próx. correia: <b>{c.next_belt_km.toLocaleString("pt-BR")}</b></span>}
             {c.next_oil_km != null && <span>Próx. óleo: <b>{c.next_oil_km.toLocaleString("pt-BR")}</b></span>}
           </div>
-          <div className="grid gap-1 sm:grid-cols-2">
-            {items.map((i, k) => (
-              <p key={k} className="flex items-center gap-1.5">{i.ok ? <CheckCircle2 className="h-4 w-4 text-success" /> : <XCircle className="h-4 w-4 text-destructive" />}{i.label}{i.note && <span className="text-xs text-muted-foreground">· {i.note}</span>}</p>
-            ))}
-          </div>
+          {items.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhum ponto foi marcado nesta conferência.</p>
+          ) : (
+            <div className="grid gap-1 sm:grid-cols-2">
+              {items.map((i, k) => (
+                <p key={k} className="flex items-center gap-1.5">{i.ok ? <CheckCircle2 className="h-4 w-4 text-success" /> : <XCircle className="h-4 w-4 text-destructive" />}{i.label}{i.note && <span className="text-xs text-muted-foreground">· {i.note}</span>}</p>
+              ))}
+            </div>
+          )}
           {c.notes && <p className="italic">Obs.: {c.notes}</p>}
           {urls.length > 0 && <div className="flex flex-wrap gap-2">{urls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="Anexo" className="h-28 rounded-md border" /></a>)}</div>}
           {c.raw_text && <details><summary className="cursor-pointer text-xs text-muted-foreground">Mensagem original</summary><pre className="mt-2 whitespace-pre-wrap rounded-md bg-background/60 p-2 text-xs">{c.raw_text}</pre></details>}

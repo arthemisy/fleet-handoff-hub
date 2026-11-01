@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createManualItems, reviewedItems } from "./checklist-template";
+import { createManualItems, reviewedCount, reviewedItems } from "./checklist-template";
 
 describe("manual conference template", () => {
   it("starts with conference points ready to review, never approved automatically", () => {
