@@ -45,11 +45,12 @@ const freshForm = (): ChecklistDraft => ({ ...empty, checked_date: dateStr(new D
 const manualForm = (): ChecklistDraft => ({ ...freshForm(), items: createManualItems() });
 
 /** Two pickers side by side: the phone's rear camera for a new shot, the gallery for photos that already exist. */
-function PhotoButtons({ onFiles, disabled }: { onFiles: (files: FileList) => void; disabled?: boolean }) {
+function PhotoButtons({ onFiles, disabled }: { onFiles: (files: File[]) => void; disabled?: boolean }) {
   const pick = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files?.length) onFiles(files);
+    // copy the list first: clearing the input also empties the live FileList the handler is holding
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
+    if (files.length) onFiles(files);
   };
   return (
     <div className="flex flex-wrap gap-2">
