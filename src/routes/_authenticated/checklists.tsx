@@ -1,20 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
-import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil, Car, ClipboardList } from "lucide-react";
+import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil, Car, ClipboardList, ImagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib/fleet";
 import { parseChecklist, type ParsedChecklist } from "@/lib/checklist-ai.functions";
 import { dateStr, hm, legacyDateTime, timeStr, whenLabel } from "@/lib/checklist-time";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ChecklistItemsEditor } from "@/components/ChecklistItemsEditor";
 import { createManualItems, reviewedItems, type DraftChecklistItem } from "@/lib/checklist-template";
 import { useIsAdmin } from "@/lib/use-admin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/checklists")({
   head: () => ({ meta: [{ title: "Checklists · Controle de Frota" }, { name: "description", content: "Conferências de veículos lidas de mensagens e prints, salvas para consulta." }, { property: "og:title", content: "Checklists · Controle de Frota" }, { property: "og:description", content: "Conferências de veículos salvas para consulta." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -171,20 +172,19 @@ function Checklists() {
           <Label htmlFor="raw" className="flex items-center gap-1.5"><ClipboardPaste className="h-4 w-4" />Cole a mensagem do checklist</Label>
           <Textarea id="raw" rows={7} value={text} onChange={(e) => setText(e.target.value)} placeholder={"LOGAN  MIW-0436\nRES . IGOR\nHORÁRIO .10:52 SEXTA FEIRA.\nCARTÃO 🆗 …"} />
         </div>
-        <div>
-          <Label className="mb-1.5 flex items-center gap-1.5"><Camera className="h-4 w-4" />Prints ou fotos (também pode colar com Ctrl+V)</Label>
-          <div className="flex flex-wrap gap-2">
-            {shots.map((s, i) => (
-              <div key={s.url} className="relative">
-                <img src={s.url} alt={`Print ${i + 1}`} className="h-24 w-20 rounded-md border object-cover" />
-                <button aria-label="Remover" onClick={() => setShots(shots.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
-              </div>
-            ))}
-            <label className="flex h-24 w-20 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground hover:border-primary">
-              <Camera className="h-5 w-5" />Adicionar
-              <input aria-label="Adicionar prints" type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && addFiles(e.target.files)} />
-            </label>
-          </div>
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5"><Camera className="h-4 w-4" />Fotos e prints (também pode colar com Ctrl+V)</Label>
+          {shots.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {shots.map((s, i) => (
+                <div key={s.url} className="relative">
+                  <img src={s.url} alt={`Print ${i + 1}`} className="h-24 w-20 rounded-md border object-cover" />
+                  <button aria-label="Remover" onClick={() => setShots(shots.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          <PhotoButtons onFiles={addFiles} disabled={busy !== ""} />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={read} disabled={busy !== "" || (!text.trim() && !shots.length)} className="font-bold">
@@ -345,26 +345,25 @@ function SavedChecklist({ c }: { c: Checklist }) {
           </div>
           <ChecklistItemsEditor items={ef.items} onChange={(items) => setEf({ ...ef, items })} />
           <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={ef.notes ?? ""} onChange={(e) => setEf({ ...ef, notes: e.target.value })} /></div>
-          <div>
-            <Label className="mb-1.5 flex items-center gap-1.5"><Camera className="h-4 w-4" />Fotos e prints</Label>
-            <div className="flex flex-wrap gap-2">
-              {att.map((p) => (
-                <div key={p} className="relative">
-                  {urlMap[p] ? <img src={urlMap[p]} alt="Anexo" className="h-24 w-20 rounded-md border object-cover" /> : <div className="h-24 w-20 rounded-md border bg-muted" />}
-                  <button aria-label="Remover foto" onClick={() => setAtt(att.filter((x) => x !== p))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
-                </div>
-              ))}
-              {newShots.map((s, i) => (
-                <div key={s.url} className="relative">
-                  <img src={s.url} alt="Nova foto" className="h-24 w-20 rounded-md border border-primary object-cover" />
-                  <button aria-label="Remover foto" onClick={() => setNewShots(newShots.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
-                </div>
-              ))}
-              <label className="flex h-24 w-20 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground hover:border-primary">
-                <Camera className="h-5 w-5" />Adicionar
-                <input aria-label="Adicionar fotos" type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && addEditFiles(e.target.files)} />
-              </label>
-            </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5"><Camera className="h-4 w-4" />Fotos e prints</Label>
+            {(att.length > 0 || newShots.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {att.map((p) => (
+                  <div key={p} className="relative">
+                    {urlMap[p] ? <img src={urlMap[p]} alt="Anexo" className="h-24 w-20 rounded-md border object-cover" /> : <div className="h-24 w-20 rounded-md border bg-muted" />}
+                    <button aria-label="Remover foto" onClick={() => setAtt(att.filter((x) => x !== p))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                ))}
+                {newShots.map((s, i) => (
+                  <div key={s.url} className="relative">
+                    <img src={s.url} alt="Nova foto" className="h-24 w-20 rounded-md border border-primary object-cover" />
+                    <button aria-label="Remover foto" onClick={() => setNewShots(newShots.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <PhotoButtons onFiles={addEditFiles} disabled={saving} />
           </div>
           <div className="space-y-1"><Label>Mensagem original</Label><Textarea rows={5} value={ef.raw_text} onChange={(e) => setEf({ ...ef, raw_text: e.target.value })} /></div>
           <div className="flex gap-2">
