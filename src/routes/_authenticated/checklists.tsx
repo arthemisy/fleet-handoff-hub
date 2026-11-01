@@ -246,7 +246,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${bad ? "bg-destructive/20 text-destructive" : "bg-success/20 text-success"}`}>{bad ? `${bad} pendência${bad > 1 ? "s" : ""}` : "Tudo OK"}</span>
         <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && (
+      {open && !editing && (
         <div className="space-y-3 border-t p-3 text-sm">
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
             {c.km != null && <span>KM: <b>{c.km.toLocaleString("pt-BR")}</b></span>}
@@ -261,7 +261,44 @@ function SavedChecklist({ c }: { c: Checklist }) {
           {c.notes && <p className="italic">Obs.: {c.notes}</p>}
           {urls.length > 0 && <div className="flex flex-wrap gap-2">{urls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="Anexo" className="h-28 rounded-md border" /></a>)}</div>}
           {c.raw_text && <details><summary className="cursor-pointer text-xs text-muted-foreground">Mensagem original</summary><pre className="mt-2 whitespace-pre-wrap rounded-md bg-background/60 p-2 text-xs">{c.raw_text}</pre></details>}
-          {isAdmin && <Button variant="ghost" size="sm" className="text-destructive" onClick={remove}><Trash2 className="h-4 w-4" />Excluir</Button>}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={startEdit}><Pencil className="h-4 w-4" />Editar</Button>
+            {isAdmin && <Button variant="ghost" size="sm" className="text-destructive" onClick={remove}><Trash2 className="h-4 w-4" />Excluir</Button>}
+          </div>
+        </div>
+      )}
+      {open && editing && (
+        <div className="space-y-4 border-t p-3 text-sm">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"], ["checked_at", "Data / horário"]] as const).map(([k, l]) => (
+              <div key={k} className="space-y-1"><Label>{l}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
+            ))}
+            {([["km", "KM atual"], ["next_belt_km", "Próx. correia (KM)"], ["next_oil_km", "Próx. óleo (KM)"]] as const).map(([k, l]) => (
+              <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
+            ))}
+          </div>
+          <div>
+            <Label>Itens conferidos (toque para alternar)</Label>
+            <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+              {ef.items.map((it, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-md border bg-background/50 px-2 py-1.5">
+                  <button aria-label="Alternar" onClick={() => setEf({ ...ef, items: ef.items.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })}>
+                    {it.ok ? <CheckCircle2 className="h-5 w-5 text-success" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                  </button>
+                  <Input className="h-8 border-0 bg-transparent px-1" value={it.label} onChange={(e) => setEf({ ...ef, items: ef.items.map((x, j) => j === i ? { ...x, label: e.target.value } : x) })} />
+                  <Input className="h-8 w-28 border-0 bg-transparent px-1 text-xs" placeholder="Detalhe" value={it.note ?? ""} onChange={(e) => setEf({ ...ef, items: ef.items.map((x, j) => j === i ? { ...x, note: e.target.value || null } : x) })} />
+                  <button aria-label="Remover item" onClick={() => setEf({ ...ef, items: ef.items.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4 text-muted-foreground" /></button>
+                </div>
+              ))}
+            </div>
+            <Button variant="ghost" size="sm" className="mt-1" onClick={() => setEf({ ...ef, items: [...ef.items, { label: "", ok: true, note: null }] })}>+ Item</Button>
+          </div>
+          <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={ef.notes ?? ""} onChange={(e) => setEf({ ...ef, notes: e.target.value })} /></div>
+          <div className="space-y-1"><Label>Mensagem original</Label><Textarea rows={5} value={ef.raw_text} onChange={(e) => setEf({ ...ef, raw_text: e.target.value })} /></div>
+          <div className="flex gap-2">
+            <Button onClick={saveEdit} disabled={saving} className="font-bold"><Save className="h-4 w-4" />{saving ? "Salvando…" : "Salvar alterações"}</Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>Cancelar</Button>
+          </div>
         </div>
       )}
     </div>
