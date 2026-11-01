@@ -9,3 +9,5 @@
 - [x] Checklist: two separate photo pickers side by side — "Tirar foto" (rear camera) and "Galeria / Anexar" (existing photos), in both creation and editing
 - [x] Move Gestores / Veículos / Checklists (and Importar) to a prominent bar at the top of the screen and remove the buttons from the bottom bar
 - [x] Checklist: a new conference opens with every field blank (no prefilled date/time, no suggestions until typed)
+- [x] Checklist: saving no longer requires every point to be marked — unmarked points are left out of the saved conference
+- [x] Checklist: remove conference points that were never cited in any saved conference
