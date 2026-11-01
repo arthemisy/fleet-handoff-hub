@@ -13,6 +13,7 @@ import { ChecklistItemsEditor } from "@/components/ChecklistItemsEditor";
 import { createManualItems, reviewedItems, type DraftChecklistItem } from "@/lib/checklist-template";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { useIsAdmin } from "@/lib/use-admin";
+import type { PlateCandidate } from "@/lib/plate-search";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -112,6 +113,17 @@ function Checklists() {
 
   const match = form.plate ? f.vehicles.find((v) => normPlate(v.plate) === normPlate(form.plate)) : undefined;
   const hasContent = form.items.length > 0 || text.trim().length > 0 || shots.length > 0;
+
+  /** Choosing a plate from the list also fills whatever is still blank about that car. */
+  function fillFrom(p: PlateCandidate) {
+    setForm((prev) => ({
+      ...prev,
+      plate: p.plate,
+      model: prev.model || p.model || "",
+      obra: prev.obra || p.obra || "",
+      responsible: prev.responsible || p.manager || "",
+    }));
+  }
 
   async function save() {
     if (!form.plate?.trim()) { toast.error("Informe a placa"); return; }
@@ -267,6 +279,17 @@ function SavedChecklist({ c }: { c: Checklist }) {
     });
   }, [open, missing.join("|")]);
   const urls = c.attachments.map((p) => urlMap[p]).filter(Boolean) as string[];
+
+  /** Choosing a plate from the list also fills whatever is still blank about that car. */
+  function fillEditFrom(p: PlateCandidate) {
+    setEf((prev) => ({
+      ...prev,
+      plate: p.plate,
+      model: prev.model || p.model || "",
+      obra: prev.obra || p.obra || "",
+      responsible: prev.responsible || p.manager || "",
+    }));
+  }
   async function remove() {
     if (!confirm("Excluir esta conferência?")) return;
     if (c.attachments.length) await supabase.storage.from("checklists").remove(c.attachments);
