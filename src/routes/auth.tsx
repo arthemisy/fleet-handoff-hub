@@ -14,6 +14,8 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Acesse o Controle de Frota da EletroMW com sua conta da equipe." },
       { property: "og:title", content: "Entrar · Controle de Frota EletroMW" },
       { property: "og:description", content: "Acesso da equipe ao controle de frota e gastos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,

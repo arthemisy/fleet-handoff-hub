@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { VehicleDialog, ExpenseDialog } from "@/components/FleetDialogs";
 
 export const Route = createFileRoute("/_authenticated/veiculos")({
-  head: () => ({ meta: [{ title: "Veículos · Controle de Frota" }, { name: "description", content: "Todos os veículos da frota com gastos por placa." }, { property: "og:title", content: "Veículos · Controle de Frota" }, { property: "og:description", content: "Gastos por veículo da frota EletroMW." }] }),
+  head: () => ({ meta: [{ title: "Veículos · Controle de Frota" }, { name: "description", content: "Todos os veículos da frota com gastos por placa." }, { property: "og:title", content: "Veículos · Controle de Frota" }, { property: "og:description", content: "Gastos por veículo da frota EletroMW." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(fleetQuery),
   component: Veiculos,
 });

@@ -8,7 +8,7 @@ import { fleetQuery, normPlate } from "@/lib/fleet";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/importar")({
-  head: () => ({ meta: [{ title: "Importar planilhas · Controle de Frota" }, { name: "description", content: "Importe planilhas de gestores e de manutenções." }, { property: "og:title", content: "Importar planilhas · Controle de Frota" }, { property: "og:description", content: "Importe planilhas de gestores e manutenções." }] }),
+  head: () => ({ meta: [{ title: "Importar planilhas · Controle de Frota" }, { name: "description", content: "Importe planilhas de gestores e de manutenções." }, { property: "og:title", content: "Importar planilhas · Controle de Frota" }, { property: "og:description", content: "Importe planilhas de gestores e manutenções." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(fleetQuery),
   component: Importar,
 });
