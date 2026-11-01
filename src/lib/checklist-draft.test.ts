@@ -3,10 +3,10 @@ import { freshChecklist } from "./checklist-draft";
 import { createManualItems } from "./checklist-template";
 
 describe("freshChecklist", () => {
-  it("opens with every field empty, date and time included", () => {
-    expect(freshChecklist()).toEqual({
-      plate: "", model: "", responsible: "", obra: "",
-      checked_date: null, checked_time: null,
+  it("opens blank but with the current date and time already filled", () => {
+    expect(freshChecklist(new Date(2026, 10, 1, 17, 49))).toEqual({
+      plate: "", model: "", responsible: "", obra: "", gestor: "", funcionario: "",
+      checked_date: "2026-11-01", checked_time: "17:49",
       km: null, next_belt_km: null, next_oil_km: null, notes: "", items: [],
     });
   });
@@ -16,7 +16,5 @@ describe("freshChecklist", () => {
     expect(draft.items.length).toBeGreaterThan(50);
     expect(draft.items.every((i) => i.ok === null)).toBe(true);
     expect(draft.plate).toBe("");
-    expect(draft.checked_date).toBeNull();
-    expect(draft.checked_time).toBeNull();
   });
 });
