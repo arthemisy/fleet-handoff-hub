@@ -37,7 +37,8 @@ export function expenseOwners(vehicles: Vehicle[], expenses: Expense[], assignme
     const hist = historyFor(v.plate, assignments);
     if (!hist.length) { out.set(e.id, v.manager_id); continue; }
     const d = e.expense_date ?? "9999-12-31";
-    let owner: string | null = hist[0].start_date && d < hist[0].start_date ? null : hist[0].manager_id;
+    const first = hist[0]!;
+    let owner: string | null = first.start_date && d < first.start_date ? null : first.manager_id;
     for (const a of hist) if (!a.start_date || a.start_date <= d) owner = a.manager_id;
     out.set(e.id, owner);
   }
@@ -62,7 +63,7 @@ export function returnedVehicles(m: Manager, vehicles: Vehicle[], assignments: A
 export function activeSince(v: Vehicle, assignments: Assignment[]) {
   const hist = historyFor(v.plate, assignments);
   let since: string | null = null;
-  for (let i = hist.length - 1; i >= 0 && hist[i].manager_id === v.manager_id; i--) since = hist[i].start_date;
+  for (let i = hist.length - 1; i >= 0 && hist[i]!.manager_id === v.manager_id; i--) since = hist[i]!.start_date;
   return since;
 }
 
