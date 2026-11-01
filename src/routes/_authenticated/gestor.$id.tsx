@@ -11,7 +11,7 @@ import { VehicleDialog, ExpenseDialog } from "@/components/FleetDialogs";
 import { Stat } from "@/components/Stat";
 
 export const Route = createFileRoute("/_authenticated/gestor/$id")({
-  head: () => ({ meta: [{ title: "Pasta do gestor · Controle de Frota" }, { name: "description", content: "Veículos, obras e gastos sob responsabilidade do gestor." }, { property: "og:title", content: "Pasta do gestor · Controle de Frota" }, { property: "og:description", content: "Veículos, obras e gastos do gestor." }] }),
+  head: () => ({ meta: [{ title: "Pasta do gestor · Controle de Frota" }, { name: "description", content: "Veículos, obras e gastos sob responsabilidade do gestor." }, { property: "og:title", content: "Pasta do gestor · Controle de Frota" }, { property: "og:description", content: "Veículos, obras e gastos do gestor." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(fleetQuery),
   component: Gestor,
 });

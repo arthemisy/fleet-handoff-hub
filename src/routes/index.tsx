@@ -7,6 +7,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Gestores, veículos, checklists e gastos da frota EletroMW em tempo real." },
       { property: "og:title", content: "Controle de Frota · EletroMW" },
       { property: "og:description", content: "Gestores, veículos, checklists e gastos da frota EletroMW." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   beforeLoad: () => {

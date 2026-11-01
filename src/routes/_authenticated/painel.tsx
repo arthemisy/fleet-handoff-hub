@@ -11,7 +11,7 @@ import { Stat } from "@/components/Stat";
 import { plateWarnings } from "@/lib/plates";
 
 export const Route = createFileRoute("/_authenticated/painel")({
-  head: () => ({ meta: [{ title: "Painel · Controle de Frota" }, { name: "description", content: "Pastas dos gestores e gastos consolidados." }, { property: "og:title", content: "Painel · Controle de Frota" }, { property: "og:description", content: "Pastas dos gestores e gastos consolidados." }] }),
+  head: () => ({ meta: [{ title: "Painel · Controle de Frota" }, { name: "description", content: "Pastas dos gestores e gastos consolidados." }, { property: "og:title", content: "Painel · Controle de Frota" }, { property: "og:description", content: "Pastas dos gestores e gastos consolidados." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(fleetQuery),
   component: Painel,
 });

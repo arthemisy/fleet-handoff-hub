@@ -9,16 +9,20 @@ import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib
 import { parseChecklist, type ParsedChecklist } from "@/lib/checklist-ai.functions";
 import { dateStr, hm, legacyDateTime, timeStr, whenLabel } from "@/lib/checklist-time";
 import { Button } from "@/components/ui/button";
+import { ChecklistItemsEditor } from "@/components/ChecklistItemsEditor";
+import { createManualItems, reviewedItems, type DraftChecklistItem } from "@/lib/checklist-template";
 import { useIsAdmin } from "@/lib/use-admin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/_authenticated/checklists")({
-  head: () => ({ meta: [{ title: "Checklists · Controle de Frota" }, { name: "description", content: "Conferências de veículos lidas de mensagens e prints, salvas para consulta." }, { property: "og:title", content: "Checklists · Controle de Frota" }, { property: "og:description", content: "Conferências de veículos salvas para consulta." }] }),
+  head: () => ({ meta: [{ title: "Checklists · Controle de Frota" }, { name: "description", content: "Conferências de veículos lidas de mensagens e prints, salvas para consulta." }, { property: "og:title", content: "Checklists · Controle de Frota" }, { property: "og:description", content: "Conferências de veículos salvas para consulta." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(fleetQuery),
   component: Checklists,
 });
+
+type ChecklistDraft = Omit<ParsedChecklist, "items"> & { items: DraftChecklistItem[] };
 
 type Shot = { file: Blob; url: string };
 
@@ -35,14 +39,14 @@ const toDataURL = (b: Blob) => new Promise<string>((r) => { const fr = new FileR
 
 const empty: ParsedChecklist = { plate: "", model: "", responsible: "", obra: "", checked_date: null, checked_time: null, km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "" };
 /** Manual fill always starts with the day and the clock time on this phone. */
-const nowForm = (): ParsedChecklist => ({ ...empty, checked_date: dateStr(new Date()), checked_time: timeStr(new Date()) });
+const nowForm = (): ChecklistDraft => ({ ...empty, checked_date: dateStr(new Date()), checked_time: timeStr(new Date()), items: createManualItems() });
 
 function Checklists() {
   const { data: f } = useSuspenseQuery(fleetQuery);
   const parse = useServerFn(parseChecklist);
   const [text, setText] = useState("");
   const [shots, setShots] = useState<Shot[]>([]);
-  const [form, setForm] = useState<ParsedChecklist | null>(null);
+  const [form, setForm] = useState<ChecklistDraft | null>(null);
   const [busy, setBusy] = useState<"" | "read" | "save">("");
   const [updateVehicle, setUpdateVehicle] = useState(true);
   const [filter, setFilter] = useState("");
@@ -86,6 +90,7 @@ function Checklists() {
     if (!form?.plate?.trim()) { toast.error("Informe a placa"); return; }
     setBusy("save");
     try {
+      const items = reviewedItems(form.items);
       const { data: u } = await supabase.auth.getUser();
       const paths: string[] = [];
       for (const s of shots) {
@@ -97,7 +102,7 @@ function Checklists() {
       const { error } = await supabase.from("checklists").insert({
         plate: form.plate.trim().toUpperCase(), model: form.model || match?.model || null, responsible: form.responsible || null,
         obra: form.obra || null, checked_date: form.checked_date || null, checked_time: form.checked_time || null, km: form.km, next_belt_km: form.next_belt_km,
-        next_oil_km: form.next_oil_km, items: form.items, notes: form.notes || null, raw_text: text || null,
+        next_oil_km: form.next_oil_km, items, notes: form.notes || null, raw_text: text || null,
         attachments: paths, created_by: u.user?.id ?? null,
       });
       if (error) throw error;
@@ -164,22 +169,7 @@ function Checklists() {
             ))}
           </div>
           <p className="text-sm">{match ? <>Veículo encontrado: <b>{match.plate}</b> {match.model} · {f.managers.find((m) => m.id === match.manager_id)?.name ?? "sem gestor"}</> : <span className="text-destructive">Placa não encontrada na frota — o checklist será salvo mesmo assim.</span>}</p>
-          <div>
-            <Label>Itens conferidos (toque para alternar)</Label>
-            <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
-              {form.items.map((it, i) => (
-                <div key={i} className="flex items-center gap-2 rounded-md border bg-background/50 px-2 py-1.5">
-                  <button aria-label="Alternar" onClick={() => setForm({ ...form, items: form.items.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })}>
-                    {it.ok ? <CheckCircle2 className="h-5 w-5 text-success" /> : <XCircle className="h-5 w-5 text-destructive" />}
-                  </button>
-                  <Input className="h-8 border-0 bg-transparent px-1" value={it.label} onChange={(e) => setForm({ ...form, items: form.items.map((x, j) => j === i ? { ...x, label: e.target.value } : x) })} />
-                  {it.note && <span className="shrink-0 text-xs text-muted-foreground">{it.note}</span>}
-                  <button aria-label="Remover item" onClick={() => setForm({ ...form, items: form.items.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4 text-muted-foreground" /></button>
-                </div>
-              ))}
-            </div>
-            <Button variant="ghost" size="sm" className="mt-1" onClick={() => setForm({ ...form, items: [...form.items, { label: "", ok: true, note: null }] })}>+ Item</Button>
-          </div>
+          <ChecklistItemsEditor items={form.items} onChange={(items) => setForm({ ...form, items })} />
           <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           {match && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={updateVehicle} onChange={(e) => setUpdateVehicle(e.target.checked)} />Atualizar KM e obra do veículo na tabela</label>}
           <div className="flex gap-2">
@@ -206,7 +196,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
   const isAdmin = useIsAdmin();
   const [urlMap, setUrlMap] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
-  const [ef, setEf] = useState<ParsedChecklist & { raw_text: string }>({ plate: "", model: "", responsible: "", obra: "", checked_date: null, checked_time: null, km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "", raw_text: "" });
+  const [ef, setEf] = useState<ChecklistDraft & { raw_text: string }>({ plate: "", model: "", responsible: "", obra: "", checked_date: null, checked_time: null, km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "", raw_text: "" });
   const [att, setAtt] = useState<string[]>([]);
   const [newShots, setNewShots] = useState<Shot[]>([]);
   const [saving, setSaving] = useState(false);
@@ -254,6 +244,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
     if (!plate) { toast.error("Informe a placa"); return; }
     setSaving(true);
     try {
+      const updatedItems = reviewedItems(ef.items);
       const paths: string[] = [];
       for (const s of newShots) {
         const path = `${normPlate(plate)}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
@@ -264,7 +255,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
       const { error } = await supabase.from("checklists").update({
         plate: plate.toUpperCase(), model: ef.model || null, responsible: ef.responsible || null,
         obra: ef.obra || null, checked_date: ef.checked_date || null, checked_time: ef.checked_time || null, km: ef.km, next_belt_km: ef.next_belt_km,
-        next_oil_km: ef.next_oil_km, items: ef.items, notes: ef.notes || null, raw_text: ef.raw_text || null,
+        next_oil_km: ef.next_oil_km, items: updatedItems, notes: ef.notes || null, raw_text: ef.raw_text || null,
         attachments: [...att, ...paths],
       }).eq("id", c.id);
       if (error) throw error;
@@ -320,22 +311,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
               <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
             ))}
           </div>
-          <div>
-            <Label>Itens conferidos (toque para alternar)</Label>
-            <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
-              {ef.items.map((it, i) => (
-                <div key={i} className="flex items-center gap-2 rounded-md border bg-background/50 px-2 py-1.5">
-                  <button aria-label="Alternar" onClick={() => setEf({ ...ef, items: ef.items.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })}>
-                    {it.ok ? <CheckCircle2 className="h-5 w-5 text-success" /> : <XCircle className="h-5 w-5 text-destructive" />}
-                  </button>
-                  <Input className="h-8 border-0 bg-transparent px-1" value={it.label} onChange={(e) => setEf({ ...ef, items: ef.items.map((x, j) => j === i ? { ...x, label: e.target.value } : x) })} />
-                  <Input className="h-8 w-28 border-0 bg-transparent px-1 text-xs" placeholder="Detalhe" value={it.note ?? ""} onChange={(e) => setEf({ ...ef, items: ef.items.map((x, j) => j === i ? { ...x, note: e.target.value || null } : x) })} />
-                  <button aria-label="Remover item" onClick={() => setEf({ ...ef, items: ef.items.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4 text-muted-foreground" /></button>
-                </div>
-              ))}
-            </div>
-            <Button variant="ghost" size="sm" className="mt-1" onClick={() => setEf({ ...ef, items: [...ef.items, { label: "", ok: true, note: null }] })}>+ Item</Button>
-          </div>
+          <ChecklistItemsEditor items={ef.items} onChange={(items) => setEf({ ...ef, items })} />
           <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={ef.notes ?? ""} onChange={(e) => setEf({ ...ef, notes: e.target.value })} /></div>
           <div>
             <Label className="mb-1.5 flex items-center gap-1.5"><Camera className="h-4 w-4" />Fotos e prints</Label>
