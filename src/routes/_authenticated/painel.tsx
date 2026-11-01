@@ -7,24 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl, fleetQuery, managerStats } from "@/lib/fleet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Stat } from "@/components/Stat";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({ meta: [{ title: "Painel · Controle de Frota" }, { name: "description", content: "Pastas dos gestores e gastos consolidados." }, { property: "og:title", content: "Painel · Controle de Frota" }, { property: "og:description", content: "Pastas dos gestores e gastos consolidados." }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(fleetQuery),
   component: Painel,
 });
-
-export function Stat({ icon: Icon, label, value, tone, sub }: { icon: typeof Car; label: string; value: string | number; tone: "plain" | "blue" | "yellow"; sub?: string }) {
-  const border = tone === "blue" ? "border-l-brand-blue" : tone === "yellow" ? "border-l-primary" : "border-l-border";
-  const color = tone === "blue" ? "text-brand-blue" : tone === "yellow" ? "text-primary" : "";
-  return (
-    <div className={`rounded-xl border border-l-4 bg-card p-4 ${border}`}>
-      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground"><Icon className="h-3.5 w-3.5" />{label}</p>
-      <p className={`mt-2 font-display text-2xl font-extrabold ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
-    </div>
-  );
-}
 
 function Painel() {
   const { data: f } = useSuspenseQuery(fleetQuery);

@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl, expensesForVehicle, fleetQuery, managerStats } from "@/lib/fleet";
 import { Button } from "@/components/ui/button";
 import { VehicleDialog, ExpenseDialog } from "@/components/FleetDialogs";
-import { Stat } from "./painel";
+import { Stat } from "@/components/Stat";
 
 export const Route = createFileRoute("/_authenticated/gestor/$id")({
   head: () => ({ meta: [{ title: "Pasta do gestor · Controle de Frota" }, { name: "description", content: "Veículos, obras e gastos sob responsabilidade do gestor." }, { property: "og:title", content: "Pasta do gestor · Controle de Frota" }, { property: "og:description", content: "Veículos, obras e gastos do gestor." }] }),
