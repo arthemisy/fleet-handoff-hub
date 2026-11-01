@@ -40,7 +40,8 @@ function Shell() {
             );
           })}
         </nav>
-        {isAdmin && <p className="mt-auto mb-2 rounded-lg border border-primary/40 px-3 py-2 text-xs font-bold text-primary">Administradora principal</p>}
+        <div className="mt-auto" />
+        {isAdmin && <p className="mb-2 rounded-lg border border-primary/40 px-3 py-2 text-xs font-bold text-primary">Administradora principal</p>}
         <button onClick={() => supabase.auth.signOut()} className=" flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted">
           <LogOut className="h-4 w-4" /> Sair
         </button>
