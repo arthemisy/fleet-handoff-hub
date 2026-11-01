@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil } from "lucide-react";
+import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil, Car, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib/fleet";
 import { parseChecklist, type ParsedChecklist } from "@/lib/checklist-ai.functions";
@@ -38,15 +38,17 @@ async function shrink(file: File | Blob): Promise<Blob> {
 const toDataURL = (b: Blob) => new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(b); });
 
 const empty: ParsedChecklist = { plate: "", model: "", responsible: "", obra: "", checked_date: null, checked_time: null, km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "" };
-/** Manual fill always starts with the day and the clock time on this phone. */
-const nowForm = (): ChecklistDraft => ({ ...empty, checked_date: dateStr(new Date()), checked_time: timeStr(new Date()), items: createManualItems() });
+/** Identification is always on screen and always starts with the day and the clock time on this phone. */
+const freshForm = (): ChecklistDraft => ({ ...empty, checked_date: dateStr(new Date()), checked_time: timeStr(new Date()), items: [] });
+/** Same draft, with the ready-made list of conference points loaded in. */
+const manualForm = (): ChecklistDraft => ({ ...freshForm(), items: createManualItems() });
 
 function Checklists() {
   const { data: f } = useSuspenseQuery(fleetQuery);
   const parse = useServerFn(parseChecklist);
   const [text, setText] = useState("");
   const [shots, setShots] = useState<Shot[]>([]);
-  const [form, setForm] = useState<ChecklistDraft | null>(null);
+  const [form, setForm] = useState<ChecklistDraft>(freshForm);
   const [busy, setBusy] = useState<"" | "read" | "save">("");
   const [updateVehicle, setUpdateVehicle] = useState(true);
   const [filter, setFilter] = useState("");
@@ -84,10 +86,11 @@ function Checklists() {
     }
   }
 
-  const match = form?.plate ? f.vehicles.find((v) => normPlate(v.plate) === normPlate(form.plate)) : undefined;
+  const match = form.plate ? f.vehicles.find((v) => normPlate(v.plate) === normPlate(form.plate)) : undefined;
+  const hasContent = form.items.length > 0 || text.trim().length > 0 || shots.length > 0;
 
   async function save() {
-    if (!form?.plate?.trim()) { toast.error("Informe a placa"); return; }
+    if (!form.plate?.trim()) { toast.error("Informe a placa"); return; }
     setBusy("save");
     try {
       const items = reviewedItems(form.items);
@@ -113,7 +116,7 @@ function Checklists() {
         if (Object.keys(upd).length) await supabase.from("vehicles").update(upd).eq("id", match.id);
       }
       toast.success("Checklist salvo");
-      setForm(null); setText(""); setShots([]);
+      setForm(freshForm()); setText(""); setShots([]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
@@ -121,12 +124,48 @@ function Checklists() {
     }
   }
 
+  function clearAll() {
+    setForm(freshForm()); setText(""); setShots([]);
+  }
+
   const list = f.checklists.filter((c) => `${c.plate} ${c.model} ${c.responsible} ${c.obra}`.toLowerCase().includes(filter.toLowerCase()));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <h1 className="font-display text-2xl font-extrabold">Checklist de conferência</h1>
 
+      {/* 1. Vehicle identification — always the first thing on screen */}
+      <section className="space-y-3 rounded-xl border-2 border-primary/50 bg-card p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Car className="h-5 w-5 text-primary" />
+          <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-primary">Veículo conferido</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="space-y-1 md:col-span-2">
+            <Label htmlFor="plate" className="text-sm font-bold">Placa</Label>
+            <Input id="plate" placeholder="MIW-0436" autoComplete="off" className="h-11 font-display text-lg font-extrabold uppercase tracking-wider" value={form.plate ?? ""} onChange={(e) => setForm({ ...form, plate: e.target.value })} />
+          </div>
+          <div className="space-y-1"><Label>Modelo</Label><Input placeholder="Logan" value={form.model ?? ""} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
+          <div className="space-y-1"><Label>Responsável</Label><Input placeholder="Quem estava com o carro" value={form.responsible ?? ""} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
+          <div className="space-y-1 md:col-span-2"><Label>Obra</Label><Input placeholder="São Francisco do Sul" value={form.obra ?? ""} onChange={(e) => setForm({ ...form, obra: e.target.value })} /></div>
+          <div className="space-y-1">
+            <Label className="flex items-center justify-between">Data<button type="button" className="text-xs font-bold text-primary" onClick={() => setForm({ ...form, checked_date: dateStr(new Date()) })}>hoje</button></Label>
+            <Input type="date" className="h-11" value={form.checked_date ?? ""} onChange={(e) => setForm({ ...form, checked_date: e.target.value || null })} />
+          </div>
+          <div className="space-y-1">
+            <Label className="flex items-center justify-between">Hora<button type="button" className="text-xs font-bold text-primary" onClick={() => setForm({ ...form, checked_time: timeStr(new Date()) })}>agora</button></Label>
+            <Input type="time" className="h-11" value={form.checked_time ?? ""} onChange={(e) => setForm({ ...form, checked_time: e.target.value || null })} />
+          </div>
+          {([["km", "KM atual"], ["next_belt_km", "Próx. correia (KM)"], ["next_oil_km", "Próx. óleo (KM)"]] as const).map(([k, l]) => (
+            <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
+          ))}
+        </div>
+        {(form.plate ?? "").trim() && (match
+          ? <p className="rounded-lg bg-success/10 px-3 py-2 text-sm">Veículo encontrado: <b>{match.plate}</b> {match.model} · {f.managers.find((m) => m.id === match.manager_id)?.name ?? "sem gestor"}</p>
+          : <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">Placa não encontrada na frota — confira se digitou certo. O checklist será salvo mesmo assim.</p>)}
+      </section>
+
+      {/* 2. The message / prints the conference came from */}
       <section className="space-y-4 rounded-xl border bg-card p-4">
         <div className="space-y-1.5">
           <Label htmlFor="raw" className="flex items-center gap-1.5"><ClipboardPaste className="h-4 w-4" />Cole a mensagem do checklist</Label>
@@ -151,33 +190,26 @@ function Checklists() {
           <Button onClick={read} disabled={busy !== "" || (!text.trim() && !shots.length)} className="font-bold">
             <Sparkles className="h-4 w-4" />{busy === "read" ? "Lendo…" : "Ler checklist automaticamente"}
           </Button>
-          <Button variant="outline" onClick={() => setForm(nowForm())}>Preencher manualmente</Button>
+          <Button variant="outline" onClick={() => setForm((p) => ({ ...p, items: createManualItems(), checked_date: p.checked_date || dateStr(new Date()), checked_time: p.checked_time || timeStr(new Date()) }))}>
+            <ClipboardList className="h-4 w-4" />Preencher manualmente
+          </Button>
         </div>
       </section>
 
-      {form && (
-        <section className="space-y-4 rounded-xl border border-primary/50 bg-card p-4">
-          <h2 className="font-display font-extrabold text-primary">CONFIRA OS DADOS</h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"]] as const).map(([k, l]) => (
-              <div key={k} className="space-y-1"><Label>{l}</Label><Input value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} /></div>
-            ))}
-            <div className="space-y-1"><Label className="flex items-center justify-between">Data<button type="button" className="text-xs text-primary" onClick={() => setForm({ ...form, checked_date: dateStr(new Date()) })}>hoje</button></Label><Input type="date" value={form.checked_date ?? ""} onChange={(e) => setForm({ ...form, checked_date: e.target.value || null })} /></div>
-            <div className="space-y-1"><Label className="flex items-center justify-between">Hora<button type="button" className="text-xs text-primary" onClick={() => setForm({ ...form, checked_time: timeStr(new Date()) })}>agora</button></Label><Input type="time" value={form.checked_time ?? ""} onChange={(e) => setForm({ ...form, checked_time: e.target.value || null })} /></div>
-            {([["km", "KM atual"], ["next_belt_km", "Próx. correia (KM)"], ["next_oil_km", "Próx. óleo (KM)"]] as const).map(([k, l]) => (
-              <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
-            ))}
-          </div>
-          <p className="text-sm">{match ? <>Veículo encontrado: <b>{match.plate}</b> {match.model} · {f.managers.find((m) => m.id === match.manager_id)?.name ?? "sem gestor"}</> : <span className="text-destructive">Placa não encontrada na frota — o checklist será salvo mesmo assim.</span>}</p>
+      {/* 3. The points themselves + observations */}
+      {form.items.length > 0 && (
+        <section className="space-y-4 rounded-xl border border-primary/40 bg-card p-4">
+          <h2 className="font-display font-extrabold text-primary">ITENS DA CONFERÊNCIA</h2>
           <ChecklistItemsEditor items={form.items} onChange={(items) => setForm({ ...form, items })} />
           <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           {match && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={updateVehicle} onChange={(e) => setUpdateVehicle(e.target.checked)} />Atualizar KM e obra do veículo na tabela</label>}
-          <div className="flex gap-2">
-            <Button onClick={save} disabled={busy !== ""} className="font-bold"><Save className="h-4 w-4" />{busy === "save" ? "Salvando…" : "Salvar checklist"}</Button>
-            <Button variant="ghost" onClick={() => setForm(null)}>Cancelar</Button>
-          </div>
         </section>
       )}
+
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={save} disabled={busy !== "" || !hasContent} className="font-bold"><Save className="h-4 w-4" />{busy === "save" ? "Salvando…" : "Salvar checklist"}</Button>
+        <Button variant="ghost" onClick={clearAll}>Limpar</Button>
+      </div>
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
