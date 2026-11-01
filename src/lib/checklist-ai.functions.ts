@@ -6,7 +6,8 @@ export type ParsedChecklist = {
   model: string | null;
   responsible: string | null;
   obra: string | null;
-  checked_at: string | null;
+  checked_date: string | null;
+  checked_time: string | null;
   km: number | null;
   next_belt_km: number | null;
   next_oil_km: number | null;
@@ -18,13 +19,14 @@ const nul = (type: string) => ({ type: [type, "null"] });
 const schema = {
   type: "object",
   additionalProperties: false,
-  required: ["plate", "model", "responsible", "obra", "checked_at", "km", "next_belt_km", "next_oil_km", "items", "notes"],
+  required: ["plate", "model", "responsible", "obra", "checked_date", "checked_time", "km", "next_belt_km", "next_oil_km", "items", "notes"],
   properties: {
     plate: nul("string"),
     model: nul("string"),
     responsible: nul("string"),
     obra: nul("string"),
-    checked_at: nul("string"),
+    checked_date: nul("string"),
+    checked_time: nul("string"),
     km: nul("integer"),
     next_belt_km: nul("integer"),
     next_oil_km: nul("integer"),
@@ -42,13 +44,13 @@ const schema = {
 };
 
 const PROMPT = `Você lê checklists de conferência de veículos da empresa EletroMW (mensagens de WhatsApp, texto colado ou prints).
-Extraia: placa (formato AAA-0000 ou AAA-0A00, maiúsculas com hífen), modelo do carro, responsável (RES./NOME), obra/destino, data e horário como texto, KM atual (inteiro, "308.000" = 308000), próxima troca de correia dentada e de óleo em KM (inteiros; "252.00" perto de 248.185 significa 252000).
+A primeira linha da mensagem traz a data de referência (hoje, no celular de quem enviou). Extraia: placa (formato AAA-0000 ou AAA-0A00, maiúsculas com hífen), modelo do carro, responsável (RES./NOME), obra/destino, checked_date (data da conferência em AAAA-MM-DD — use a data de referência; se a mensagem citar dia da semana, "hoje", "ontem" ou uma data escrita, converta a partir dela) e checked_time (horário em HH:MM de 24h, ex. "10:52"), KM atual (inteiro, "308.000" = 308000), próxima troca de correia dentada e de óleo em KM (inteiros; "252.00" perto de 248.185 significa 252000).
 Liste cada item conferido em "items": 🆗/OK/✅ = ok true; ⛔/🔴/❌/"pingando"/problema = ok false. Coloque marcas e detalhes (ex: "marca COMFORT", "trocado") em note.
 Observações gerais (amassados, riscos, "OBS.") vão em notes. Use null para o que não existir.`;
 
 export const parseChecklist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { text: string; images: string[] }) => {
+  .inputValidator((d: { text: string; images: string[]; today?: string }) => {
     if (typeof d.text !== "string" || d.text.length > 20000) throw new Error("Texto inválido");
     if (!Array.isArray(d.images) || d.images.length > 8) throw new Error("Máximo de 8 imagens");
     if (!d.text.trim() && d.images.length === 0) throw new Error("Cole o texto ou envie um print");
@@ -60,8 +62,9 @@ export const parseChecklist = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ParsedChecklist> => {
     const key = process.env["LOVABLE_API_KEY"];
     if (!key) throw new Error("Leitura automática não configurada");
+    const ref = /^\d{4}-\d{2}-\d{2}$/.test(data.today ?? "") ? (data.today as string) : new Date().toISOString().slice(0, 10);
     const content: Record<string, unknown>[] = [
-      { type: "input_text", text: data.text.trim() ? `Mensagem do checklist:\n${data.text}` : "Leia o checklist das imagens." },
+      { type: "input_text", text: `Data de referência (hoje): ${ref}\n${data.text.trim() ? `Mensagem do checklist:\n${data.text}` : "Leia o checklist das imagens."}` },
       ...data.images.map((url) => ({ type: "input_image", image_url: url })),
     ];
     const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {

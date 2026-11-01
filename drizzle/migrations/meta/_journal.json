@@ -22,6 +22,13 @@
       "when": 1793492506345,
       "tag": "0002_bind_checklist_files",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793496280360,
+      "tag": "0003_checklist_datetime_fields",
+      "breakpoints": true
     }
   ]
 }

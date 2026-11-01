@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           attachments: string[]
           checked_at: string | null
+          checked_date: string | null
+          checked_time: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -35,6 +37,8 @@ export type Database = {
         Insert: {
           attachments?: string[]
           checked_at?: string | null
+          checked_date?: string | null
+          checked_time?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -52,6 +56,8 @@ export type Database = {
         Update: {
           attachments?: string[]
           checked_at?: string | null
+          checked_date?: string | null
+          checked_time?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
