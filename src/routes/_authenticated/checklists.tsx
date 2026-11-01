@@ -199,16 +199,24 @@ function Checklists() {
 function SavedChecklist({ c }: { c: Checklist }) {
   const [open, setOpen] = useState(false);
   const isAdmin = useIsAdmin();
-  const [urls, setUrls] = useState<string[]>([]);
+  const [urlMap, setUrlMap] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
   const [ef, setEf] = useState<ParsedChecklist & { raw_text: string }>({ plate: "", model: "", responsible: "", obra: "", checked_at: "", km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "", raw_text: "" });
+  const [att, setAtt] = useState<string[]>([]);
+  const [newShots, setNewShots] = useState<Shot[]>([]);
   const [saving, setSaving] = useState(false);
   const items = (c.items as unknown as ChecklistItem[]) ?? [];
   const bad = items.filter((i) => !i.ok).length;
+  const missing = c.attachments.filter((p) => !urlMap[p]);
   useEffect(() => {
-    if (!open || !c.attachments.length || urls.length) return;
-    supabase.storage.from("checklists").createSignedUrls(c.attachments, 3600).then(({ data }) => setUrls((data ?? []).map((d) => d.signedUrl).filter(Boolean) as string[]));
-  }, [open, c.attachments, urls.length]);
+    if (!open || !missing.length) return;
+    supabase.storage.from("checklists").createSignedUrls(missing, 3600).then(({ data }) => {
+      const m: Record<string, string> = {};
+      (data ?? []).forEach((d) => { if (d.path && d.signedUrl) m[d.path] = d.signedUrl; });
+      setUrlMap((u) => ({ ...u, ...m }));
+    });
+  }, [open, missing.join("|")]);
+  const urls = c.attachments.map((p) => urlMap[p]).filter(Boolean) as string[];
   async function remove() {
     if (!confirm("Excluir esta conferência?")) return;
     if (c.attachments.length) await supabase.storage.from("checklists").remove(c.attachments);
@@ -221,22 +229,48 @@ function SavedChecklist({ c }: { c: Checklist }) {
       checked_at: c.checked_at ?? "", km: c.km, next_belt_km: c.next_belt_km, next_oil_km: c.next_oil_km,
       items: items.map((i) => ({ label: i.label, ok: i.ok, note: i.note ?? null })), notes: c.notes ?? "", raw_text: c.raw_text ?? "",
     });
+    setAtt([...c.attachments]);
+    setNewShots([]);
     setEditing(true);
+  }
+  async function addEditFiles(files: Iterable<File>) {
+    const next: Shot[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) continue;
+      const b = await shrink(file);
+      next.push({ file: b, url: URL.createObjectURL(b) });
+    }
+    setNewShots((s) => [...s, ...next]);
   }
   async function saveEdit() {
     const plate = (ef.plate ?? "").trim();
     if (!plate) { toast.error("Informe a placa"); return; }
     setSaving(true);
-    const { error } = await supabase.from("checklists").update({
-      plate: plate.toUpperCase(), model: ef.model || null, responsible: ef.responsible || null,
-      obra: ef.obra || null, checked_at: ef.checked_at || null, km: ef.km, next_belt_km: ef.next_belt_km,
-      next_oil_km: ef.next_oil_km, items: ef.items, notes: ef.notes || null, raw_text: ef.raw_text || null,
-    }).eq("id", c.id);
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Conferência atualizada");
-    setEditing(false);
+    try {
+      const paths: string[] = [];
+      for (const s of newShots) {
+        const path = `${normPlate(plate)}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const { error } = await supabase.storage.from("checklists").upload(path, s.file, { contentType: "image/jpeg" });
+        if (error) throw error;
+        paths.push(path);
+      }
+      const { error } = await supabase.from("checklists").update({
+        plate: plate.toUpperCase(), model: ef.model || null, responsible: ef.responsible || null,
+        obra: ef.obra || null, checked_at: ef.checked_at || null, km: ef.km, next_belt_km: ef.next_belt_km,
+        next_oil_km: ef.next_oil_km, items: ef.items, notes: ef.notes || null, raw_text: ef.raw_text || null,
+        attachments: [...att, ...paths],
+      }).eq("id", c.id);
+      if (error) throw error;
+      toast.success("Conferência atualizada");
+      setEditing(false);
+      setNewShots([]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
   }
+  const nowStr = () => new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
   return (
     <div className="rounded-xl border bg-card">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 p-3 text-left">
