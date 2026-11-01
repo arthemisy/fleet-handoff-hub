@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib/fleet";
 import { parseChecklist, type ParsedChecklist } from "@/lib/checklist-ai.functions";
 import { Button } from "@/components/ui/button";
+import { useIsAdmin } from "@/lib/use-admin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -197,6 +198,7 @@ function Checklists() {
 
 function SavedChecklist({ c }: { c: Checklist }) {
   const [open, setOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [urls, setUrls] = useState<string[]>([]);
   const items = (c.items as unknown as ChecklistItem[]) ?? [];
   const bad = items.filter((i) => !i.ok).length;
@@ -235,7 +237,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
           {c.notes && <p className="italic">Obs.: {c.notes}</p>}
           {urls.length > 0 && <div className="flex flex-wrap gap-2">{urls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="Anexo" className="h-28 rounded-md border" /></a>)}</div>}
           {c.raw_text && <details><summary className="cursor-pointer text-xs text-muted-foreground">Mensagem original</summary><pre className="mt-2 whitespace-pre-wrap rounded-md bg-background/60 p-2 text-xs">{c.raw_text}</pre></details>}
-          <Button variant="ghost" size="sm" className="text-destructive" onClick={remove}><Trash2 className="h-4 w-4" />Excluir</Button>
+          {isAdmin && <Button variant="ghost" size="sm" className="text-destructive" onClick={remove}><Trash2 className="h-4 w-4" />Excluir</Button>}
         </div>
       )}
     </div>

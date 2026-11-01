@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Manager, Vehicle } from "@/lib/fleet";
+import { useIsAdmin } from "@/lib/use-admin";
 
 type VKey = "model" | "plate" | "obra" | "projeto" | "local" | "encarregado" | "motorista" | "linked_plates" | "observacao";
-type VForm = Record<VKey | "efetivos" | "km" | "status" | "manager_id", string>;
+type VForm = Record<VKey | "km" | "status" | "manager_id", string>;
 const VFIELDS: [VKey, string][] = [
   ["model", "Carro / modelo"],
   ["plate", "Placa"],
@@ -25,11 +26,11 @@ export function VehicleDialog({ trigger, vehicle, managers, defaultManagerId }: 
   trigger: ReactNode; vehicle?: Vehicle; managers: Manager[]; defaultManagerId?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [f, setF] = useState<VForm>({} as VForm);
   const init = () => {
     const o = {} as VForm;
     VFIELDS.forEach(([k]) => (o[k] = vehicle?.[k] ?? ""));
-    o.efetivos = String(vehicle?.efetivos ?? 0);
     o.km = vehicle?.km ? String(vehicle.km) : "";
     o.status = vehicle?.status ?? "Ativo";
     o.manager_id = vehicle?.manager_id ?? defaultManagerId ?? "";
@@ -43,7 +44,6 @@ export function VehicleDialog({ trigger, vehicle, managers, defaultManagerId }: 
       linked_plates: f.linked_plates.trim() || null, observacao: f.observacao.trim() || null,
       model: f.model.trim(),
       plate: f.plate.trim().toUpperCase(),
-      efetivos: Number(f.efetivos) || 0,
       km: f.km ? Number(f.km) : null,
       status: f.status || "Ativo",
       manager_id: f.manager_id || null,
@@ -80,7 +80,6 @@ export function VehicleDialog({ trigger, vehicle, managers, defaultManagerId }: 
               <Input value={f[k] ?? ""} onChange={(e) => setF({ ...f, [k]: e.target.value })} />
             </div>
           ))}
-          <div className="space-y-1"><Label>Efetivos</Label><Input type="number" value={f.efetivos ?? ""} onChange={(e) => setF({ ...f, efetivos: e.target.value })} /></div>
           <div className="space-y-1"><Label>KM atual</Label><Input type="number" value={f.km ?? ""} onChange={(e) => setF({ ...f, km: e.target.value })} /></div>
           <div className="space-y-1">
             <Label>Situação</Label>
@@ -90,7 +89,7 @@ export function VehicleDialog({ trigger, vehicle, managers, defaultManagerId }: 
           </div>
         </div>
         <div className="flex justify-between gap-2 pt-2">
-          {vehicle ? <Button variant="ghost" className="text-destructive" onClick={remove}>Excluir</Button> : <span />}
+          {vehicle && isAdmin ? <Button variant="ghost" className="text-destructive" onClick={remove}>Excluir</Button> : <span />}
           <Button onClick={save} className="font-bold">Salvar</Button>
         </div>
       </DialogContent>
