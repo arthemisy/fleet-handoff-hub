@@ -53,7 +53,9 @@ describe("searchPlates", () => {
   });
   it("finds a car by model or by gestor", () => {
     expect(searchPlates(cands, "logan")[0]!.plate).toBe("MIW-0436");
-    expect(searchPlates(cands, "maicon").map((c) => c.plate)).toEqual(["MHW-8F21", "MIW-0436"]);
+    const byGestor = searchPlates(cands, "maicon").map((c) => c.plate);
+    expect(byGestor).toEqual(["MHW-8F21", "MIW-0436", "XYZ-1234"]);
+    expect(byGestor).not.toContain("ARQ-5I93");
   });
   it("returns nothing for an unknown plate", () => {
     expect(searchPlates(cands, "zzz")).toEqual([]);
