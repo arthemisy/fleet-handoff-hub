@@ -2,7 +2,7 @@ import type { ParsedChecklist } from "@/lib/checklist-ai.functions";
 import type { DraftChecklistItem } from "./checklist-template";
 
 /** A conference being filled in: the read fields plus the points still waiting for OK/X. */
-export type ChecklistDraft = Omit<ParsedChecklist, "items"> & { items: DraftChecklistItem[]; gestor?: string; funcionario?: string };
+export type ChecklistDraft = Omit<ParsedChecklist, "items"> & { items: DraftChecklistItem[]; gestor?: string | undefined; funcionario?: string | undefined };
 
 const blank: Omit<ParsedChecklist, "items"> = {
   plate: "", model: "", responsible: "", obra: "",

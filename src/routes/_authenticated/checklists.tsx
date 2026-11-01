@@ -148,7 +148,7 @@ function Checklists() {
       toast.success(`Pasta criada para ${r.name}`);
     } else managerId = r.manager.id;
     const date = form.checked_date || dateStr(new Date());
-    const plate = form.plate.trim().toUpperCase();
+    const plate = (form.plate ?? "").trim().toUpperCase();
     if (!match) {
       const { error } = await supabase.from("vehicles").insert({ plate, model: form.model || "", manager_id: managerId, encarregado: employee, obra: form.obra || null, km: form.km, status: "Ativo" });
       if (error) throw error;
