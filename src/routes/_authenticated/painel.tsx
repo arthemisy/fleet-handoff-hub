@@ -26,7 +26,7 @@ function Painel() {
     const name = newName.trim();
     if (!name) return;
     const { error } = await supabase.from("managers").insert({ name });
-    if (error) return toast.error(error.code === "23505" ? "Esse gestor já existe" : error.message);
+    if (error) { toast.error(error.code === "23505" ? "Esse gestor já existe" : error.message); return; }
     setNewName("");
     toast.success(`Pasta de ${name} criada`);
   }

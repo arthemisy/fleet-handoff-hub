@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Manager, Vehicle } from "@/lib/fleet";
 
-const VFIELDS: [keyof Vehicle, string][] = [
+type VKey = "model" | "plate" | "obra" | "projeto" | "local" | "encarregado" | "motorista" | "linked_plates" | "observacao";
+type VForm = Record<VKey | "efetivos" | "km" | "status" | "manager_id", string>;
+const VFIELDS: [VKey, string][] = [
   ["model", "Carro / modelo"],
   ["plate", "Placa"],
   ["obra", "Obra"],
@@ -23,11 +25,10 @@ export function VehicleDialog({ trigger, vehicle, managers, defaultManagerId }: 
   trigger: ReactNode; vehicle?: Vehicle; managers: Manager[]; defaultManagerId?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<VForm>({} as VForm);
   const init = () => {
-    const v = (vehicle ?? {}) as Record<string, unknown>;
-    const o: Record<string, string> = {};
-    VFIELDS.forEach(([k]) => (o[k] = (v[k] as string) ?? ""));
+    const o = {} as VForm;
+    VFIELDS.forEach(([k]) => (o[k] = vehicle?.[k] ?? ""));
     o.efetivos = String(vehicle?.efetivos ?? 0);
     o.km = vehicle?.km ? String(vehicle.km) : "";
     o.status = vehicle?.status ?? "Ativo";
@@ -35,9 +36,11 @@ export function VehicleDialog({ trigger, vehicle, managers, defaultManagerId }: 
     setF(o);
   };
   async function save() {
-    if (!f.plate?.trim() || !f.model?.trim()) return toast.error("Informe carro e placa");
+    if (!f.plate.trim() || !f.model.trim()) { toast.error("Informe carro e placa"); return; }
     const row = {
-      ...Object.fromEntries(VFIELDS.map(([k]) => [k, f[k]?.trim() || null])),
+      obra: f.obra.trim() || null, projeto: f.projeto.trim() || null, local: f.local.trim() || null,
+      encarregado: f.encarregado.trim() || null, motorista: f.motorista.trim() || null,
+      linked_plates: f.linked_plates.trim() || null, observacao: f.observacao.trim() || null,
       model: f.model.trim(),
       plate: f.plate.trim().toUpperCase(),
       efetivos: Number(f.efetivos) || 0,
@@ -48,14 +51,14 @@ export function VehicleDialog({ trigger, vehicle, managers, defaultManagerId }: 
     const { error } = vehicle
       ? await supabase.from("vehicles").update(row).eq("id", vehicle.id)
       : await supabase.from("vehicles").insert(row);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Veículo salvo");
     setOpen(false);
   }
   async function remove() {
     if (!vehicle || !confirm(`Excluir ${vehicle.plate}?`)) return;
     const { error } = await supabase.from("vehicles").delete().eq("id", vehicle.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setOpen(false);
   }
   return (
@@ -100,12 +103,12 @@ export function ExpenseDialog({ trigger, plate, vehicleName }: { trigger: ReactN
   const [f, setF] = useState({ plate: "", vehicle_name: "", expense_date: "", amount: "", description: "", provider: "", tipo: "Outros" });
   async function save() {
     const amount = Number(f.amount.replace(/\./g, "").replace(",", "."));
-    if (!f.plate.trim() || !amount) return toast.error("Informe placa e valor");
+    if (!f.plate.trim() || !amount) { toast.error("Informe placa e valor"); return; }
     const { error } = await supabase.from("expenses").insert({
       plate: f.plate.trim().toUpperCase(), vehicle_name: f.vehicle_name || null, expense_date: f.expense_date || null,
       amount, description: f.description || null, provider: f.provider || null, tipo: f.tipo, status: "Concluída",
     });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Gasto registrado");
     setOpen(false);
   }

@@ -28,7 +28,7 @@ const isoDate = (v: unknown) => {
 async function readRows(file: File): Promise<Row[]> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array", codepage: 65001 });
-  return XLSX.utils.sheet_to_json<Row>(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+  return XLSX.utils.sheet_to_json<Row>(wb.Sheets[wb.SheetNames[0] ?? ""]!, { defval: "" });
 }
 const titleCase = (s: string) => s.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 

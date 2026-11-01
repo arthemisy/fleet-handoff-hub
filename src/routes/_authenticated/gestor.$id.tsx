@@ -32,7 +32,7 @@ function Gestor() {
   async function remove() {
     if (!confirm(`Excluir a pasta de ${m!.name}? Os veículos ficam sem gestor.`)) return;
     const { error } = await supabase.from("managers").delete().eq("id", m!.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     nav({ to: "/painel" });
   }
 

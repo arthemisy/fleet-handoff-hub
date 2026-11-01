@@ -58,7 +58,7 @@ export const parseChecklist = createServerFn({ method: "POST" })
     return d;
   })
   .handler(async ({ data }): Promise<ParsedChecklist> => {
-    const key = process.env.LOVABLE_API_KEY;
+    const key = process.env["LOVABLE_API_KEY"];
     if (!key) throw new Error("Leitura automática não configurada");
     const content: Record<string, unknown>[] = [
       { type: "input_text", text: data.text.trim() ? `Mensagem do checklist:\n${data.text}` : "Leia o checklist das imagens." },

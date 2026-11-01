@@ -79,7 +79,7 @@ function Checklists() {
   const match = form?.plate ? f.vehicles.find((v) => normPlate(v.plate) === normPlate(form.plate)) : undefined;
 
   async function save() {
-    if (!form?.plate?.trim()) return toast.error("Informe a placa");
+    if (!form?.plate?.trim()) { toast.error("Informe a placa"); return; }
     setBusy("save");
     try {
       const { data: u } = await supabase.auth.getUser();
@@ -98,7 +98,7 @@ function Checklists() {
       });
       if (error) throw error;
       if (updateVehicle && match) {
-        const upd: Record<string, unknown> = {};
+        const upd: { km?: number; obra?: string } = {};
         if (form.km) upd.km = form.km;
         if (form.obra) upd.obra = form.obra;
         if (Object.keys(upd).length) await supabase.from("vehicles").update(upd).eq("id", match.id);
