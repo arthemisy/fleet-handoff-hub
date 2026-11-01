@@ -199,16 +199,24 @@ function Checklists() {
 function SavedChecklist({ c }: { c: Checklist }) {
   const [open, setOpen] = useState(false);
   const isAdmin = useIsAdmin();
-  const [urls, setUrls] = useState<string[]>([]);
+  const [urlMap, setUrlMap] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
   const [ef, setEf] = useState<ParsedChecklist & { raw_text: string }>({ plate: "", model: "", responsible: "", obra: "", checked_at: "", km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "", raw_text: "" });
+  const [att, setAtt] = useState<string[]>([]);
+  const [newShots, setNewShots] = useState<Shot[]>([]);
   const [saving, setSaving] = useState(false);
   const items = (c.items as unknown as ChecklistItem[]) ?? [];
   const bad = items.filter((i) => !i.ok).length;
+  const missing = c.attachments.filter((p) => !urlMap[p]);
   useEffect(() => {
-    if (!open || !c.attachments.length || urls.length) return;
-    supabase.storage.from("checklists").createSignedUrls(c.attachments, 3600).then(({ data }) => setUrls((data ?? []).map((d) => d.signedUrl).filter(Boolean) as string[]));
-  }, [open, c.attachments, urls.length]);
+    if (!open || !missing.length) return;
+    supabase.storage.from("checklists").createSignedUrls(missing, 3600).then(({ data }) => {
+      const m: Record<string, string> = {};
+      (data ?? []).forEach((d) => { if (d.path && d.signedUrl) m[d.path] = d.signedUrl; });
+      setUrlMap((u) => ({ ...u, ...m }));
+    });
+  }, [open, missing.join("|")]);
+  const urls = c.attachments.map((p) => urlMap[p]).filter(Boolean) as string[];
   async function remove() {
     if (!confirm("Excluir esta conferência?")) return;
     if (c.attachments.length) await supabase.storage.from("checklists").remove(c.attachments);
@@ -221,22 +229,48 @@ function SavedChecklist({ c }: { c: Checklist }) {
       checked_at: c.checked_at ?? "", km: c.km, next_belt_km: c.next_belt_km, next_oil_km: c.next_oil_km,
       items: items.map((i) => ({ label: i.label, ok: i.ok, note: i.note ?? null })), notes: c.notes ?? "", raw_text: c.raw_text ?? "",
     });
+    setAtt([...c.attachments]);
+    setNewShots([]);
     setEditing(true);
+  }
+  async function addEditFiles(files: Iterable<File>) {
+    const next: Shot[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) continue;
+      const b = await shrink(file);
+      next.push({ file: b, url: URL.createObjectURL(b) });
+    }
+    setNewShots((s) => [...s, ...next]);
   }
   async function saveEdit() {
     const plate = (ef.plate ?? "").trim();
     if (!plate) { toast.error("Informe a placa"); return; }
     setSaving(true);
-    const { error } = await supabase.from("checklists").update({
-      plate: plate.toUpperCase(), model: ef.model || null, responsible: ef.responsible || null,
-      obra: ef.obra || null, checked_at: ef.checked_at || null, km: ef.km, next_belt_km: ef.next_belt_km,
-      next_oil_km: ef.next_oil_km, items: ef.items, notes: ef.notes || null, raw_text: ef.raw_text || null,
-    }).eq("id", c.id);
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Conferência atualizada");
-    setEditing(false);
+    try {
+      const paths: string[] = [];
+      for (const s of newShots) {
+        const path = `${normPlate(plate)}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const { error } = await supabase.storage.from("checklists").upload(path, s.file, { contentType: "image/jpeg" });
+        if (error) throw error;
+        paths.push(path);
+      }
+      const { error } = await supabase.from("checklists").update({
+        plate: plate.toUpperCase(), model: ef.model || null, responsible: ef.responsible || null,
+        obra: ef.obra || null, checked_at: ef.checked_at || null, km: ef.km, next_belt_km: ef.next_belt_km,
+        next_oil_km: ef.next_oil_km, items: ef.items, notes: ef.notes || null, raw_text: ef.raw_text || null,
+        attachments: [...att, ...paths],
+      }).eq("id", c.id);
+      if (error) throw error;
+      toast.success("Conferência atualizada");
+      setEditing(false);
+      setNewShots([]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
   }
+  const nowStr = () => new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
   return (
     <div className="rounded-xl border bg-card">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 p-3 text-left">
@@ -272,7 +306,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
         <div className="space-y-4 border-t p-3 text-sm">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"], ["checked_at", "Data / horário"]] as const).map(([k, l]) => (
-              <div key={k} className="space-y-1"><Label>{l}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
+              <div key={k} className="space-y-1"><Label className="flex items-center justify-between">{l}{k === "checked_at" && <button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_at: nowStr() })}>agora</button>}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
             ))}
             {([["km", "KM atual"], ["next_belt_km", "Próx. correia (KM)"], ["next_oil_km", "Próx. óleo (KM)"]] as const).map(([k, l]) => (
               <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
@@ -295,6 +329,27 @@ function SavedChecklist({ c }: { c: Checklist }) {
             <Button variant="ghost" size="sm" className="mt-1" onClick={() => setEf({ ...ef, items: [...ef.items, { label: "", ok: true, note: null }] })}>+ Item</Button>
           </div>
           <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={ef.notes ?? ""} onChange={(e) => setEf({ ...ef, notes: e.target.value })} /></div>
+          <div>
+            <Label className="mb-1.5 flex items-center gap-1.5"><Camera className="h-4 w-4" />Fotos e prints</Label>
+            <div className="flex flex-wrap gap-2">
+              {att.map((p) => (
+                <div key={p} className="relative">
+                  {urlMap[p] ? <img src={urlMap[p]} alt="Anexo" className="h-24 w-20 rounded-md border object-cover" /> : <div className="h-24 w-20 rounded-md border bg-muted" />}
+                  <button aria-label="Remover foto" onClick={() => setAtt(att.filter((x) => x !== p))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
+                </div>
+              ))}
+              {newShots.map((s, i) => (
+                <div key={s.url} className="relative">
+                  <img src={s.url} alt="Nova foto" className="h-24 w-20 rounded-md border border-primary object-cover" />
+                  <button aria-label="Remover foto" onClick={() => setNewShots(newShots.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
+                </div>
+              ))}
+              <label className="flex h-24 w-20 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground hover:border-primary">
+                <Camera className="h-5 w-5" />Adicionar
+                <input aria-label="Adicionar fotos" type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && addEditFiles(e.target.files)} />
+              </label>
+            </div>
+          </div>
           <div className="space-y-1"><Label>Mensagem original</Label><Textarea rows={5} value={ef.raw_text} onChange={(e) => setEf({ ...ef, raw_text: e.target.value })} /></div>
           <div className="flex gap-2">
             <Button onClick={saveEdit} disabled={saving} className="font-bold"><Save className="h-4 w-4" />{saving ? "Salvando…" : "Salvar alterações"}</Button>
