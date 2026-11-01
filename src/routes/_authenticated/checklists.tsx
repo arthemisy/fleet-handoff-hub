@@ -11,6 +11,7 @@ import { dateStr, hm, legacyDateTime, timeStr, whenLabel } from "@/lib/checklist
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ChecklistItemsEditor } from "@/components/ChecklistItemsEditor";
 import { createManualItems, reviewedItems, type DraftChecklistItem } from "@/lib/checklist-template";
+import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { useIsAdmin } from "@/lib/use-admin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,7 +167,7 @@ function Checklists() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="space-y-1 md:col-span-2">
             <Label htmlFor="plate" className="text-sm font-bold">Placa</Label>
-            <Input id="plate" placeholder="MIW-0436" autoComplete="off" className="h-11 font-display text-lg font-extrabold uppercase tracking-wider" value={form.plate ?? ""} onChange={(e) => setForm({ ...form, plate: e.target.value })} />
+            <PlateAutocomplete id="plate" placeholder="Comece a digitar a placa" className="h-11 font-display text-lg font-extrabold uppercase tracking-wider" value={form.plate ?? ""} onChange={(v) => setForm({ ...form, plate: v })} onPick={fillFrom} />
           </div>
           <div className="space-y-1"><Label>Modelo</Label><Input placeholder="Logan" value={form.model ?? ""} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
           <div className="space-y-1"><Label>Responsável</Label><Input placeholder="Quem estava com o carro" value={form.responsible ?? ""} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
@@ -356,8 +357,9 @@ function SavedChecklist({ c }: { c: Checklist }) {
       {open && editing && (
         <div className="space-y-4 border-t p-3 text-sm">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"]] as const).map(([k, l]) => (
-              <div key={k} className="space-y-1"><Label>{l}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
+            <div className="space-y-1"><Label htmlFor="edit-plate">Placa</Label><PlateAutocomplete id="edit-plate" value={ef.plate ?? ""} onChange={(v) => setEf({ ...ef, plate: v })} onPick={fillEditFrom} /></div>
+            {(["model", "responsible", "obra"] as const).map((k) => (
+              <div key={k} className="space-y-1"><Label>{k === "model" ? "Modelo" : k === "responsible" ? "Responsável" : "Obra"}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
             ))}
             <div className="space-y-1"><Label className="flex items-center justify-between">Data<button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_date: dateStr(new Date()) })}>hoje</button></Label><Input type="date" value={ef.checked_date ?? ""} onChange={(e) => setEf({ ...ef, checked_date: e.target.value || null })} /></div>
             <div className="space-y-1"><Label className="flex items-center justify-between">Hora<button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_time: timeStr(new Date()) })}>agora</button></Label><Input type="time" value={ef.checked_time ?? ""} onChange={(e) => setEf({ ...ef, checked_time: e.target.value || null })} /></div>
