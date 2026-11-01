@@ -143,7 +143,7 @@ function Checklists() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="space-y-1 md:col-span-2">
             <Label htmlFor="plate" className="text-sm font-bold">Placa</Label>
-            <Input id="plate" placeholder="MIW-0436" autoComplete="off" className="h-11 font-display text-lg font-extrabold uppercase tracking-wider" value={form.plate} onChange={(e) => setForm({ ...form, plate: e.target.value })} />
+            <Input id="plate" placeholder="MIW-0436" autoComplete="off" className="h-11 font-display text-lg font-extrabold uppercase tracking-wider" value={form.plate ?? ""} onChange={(e) => setForm({ ...form, plate: e.target.value })} />
           </div>
           <div className="space-y-1"><Label>Modelo</Label><Input placeholder="Logan" value={form.model ?? ""} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
           <div className="space-y-1"><Label>Responsável</Label><Input placeholder="Quem estava com o carro" value={form.responsible ?? ""} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
@@ -160,7 +160,7 @@ function Checklists() {
             <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
           ))}
         </div>
-        {form.plate.trim() && (match
+        {(form.plate ?? "").trim() && (match
           ? <p className="rounded-lg bg-success/10 px-3 py-2 text-sm">Veículo encontrado: <b>{match.plate}</b> {match.model} · {f.managers.find((m) => m.id === match.manager_id)?.name ?? "sem gestor"}</p>
           : <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">Placa não encontrada na frota — confira se digitou certo. O checklist será salvo mesmo assim.</p>)}
       </section>
