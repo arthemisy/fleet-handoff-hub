@@ -1,13 +1,12 @@
+import logo from "@/assets/logo-eletromw.png.asset.json";
+
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <div className={`leading-none ${className}`}>
-      <div className="font-display text-2xl font-black italic tracking-tight">
-        <span className="text-brand-blue">ELETRO</span>
-        <span className="text-brand-red">MW</span>
+    <div className={className}>
+      <div className="inline-block rounded-lg bg-foreground px-2.5 py-1.5">
+        <img src={logo.url} alt="EletroMW Soluções Elétricas" className="h-7 w-auto" width={5118} height={1041} />
       </div>
-      <div className="mt-0.5 text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-        Controle de Frota
-      </div>
+      <div className="mt-1 text-[9px] uppercase tracking-[0.3em] text-muted-foreground">Controle de Frota</div>
     </div>
   );
 }
