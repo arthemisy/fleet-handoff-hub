@@ -40,4 +40,10 @@ describe("manual conference template", () => {
       { label: "Pisca / seta esquerda", ok: false, note: "pisca lado motorista quebrado" },
     ]);
   });
+  it("keeps points that were never cited in a saved conference out of the template", () => {
+    const labels = createManualItems().map((item) => item.label);
+    expect(labels).not.toContain("Mangueira do esguicho");
+    expect(labels).toContain("Esguicho do para-brisa");
+    expect(labels.length).toBe(70);
+  });
 });
