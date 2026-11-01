@@ -47,8 +47,8 @@ export function ChecklistItemsEditor({ items, onChange }: Props) {
             <legend className="sr-only">{group}</legend>
             <button type="button" aria-expanded={open} className="flex w-full items-center gap-2 px-3 py-2.5 text-left" onClick={() => setForced((f) => ({ ...f, [group]: !open }))}>
               <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition", open && "rotate-180")} />
-              <span className="min-w-0 flex-1 truncate font-semibold text-primary">{group}</span>
-              {failed > 0 && <span className="shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-bold text-destructive">{failed} reprovado{failed > 1 ? "s" : ""}</span>}
+              <span className="min-w-0 flex-1 font-semibold text-primary">{group}</span>
+              {failed > 0 && <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[11px] font-bold text-destructive"><X className="h-3 w-3" />{failed}</span>}
               <span className="shrink-0 text-xs font-bold text-muted-foreground">{done}/{rows.length}</span>
             </button>
             {open && (
