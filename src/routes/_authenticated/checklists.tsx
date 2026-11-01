@@ -44,6 +44,27 @@ const freshForm = (): ChecklistDraft => ({ ...empty, checked_date: dateStr(new D
 /** Same draft, with the ready-made list of conference points loaded in. */
 const manualForm = (): ChecklistDraft => ({ ...freshForm(), items: createManualItems() });
 
+/** Two pickers side by side: the phone's rear camera for a new shot, the gallery for photos that already exist. */
+function PhotoButtons({ onFiles, disabled }: { onFiles: (files: FileList) => void; disabled?: boolean }) {
+  const pick = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files?.length) onFiles(files);
+    e.target.value = "";
+  };
+  return (
+    <div className="flex flex-wrap gap-2">
+      <label className={cn(buttonVariants({ variant: "default" }), "cursor-pointer")}>
+        <Camera className="h-4 w-4" />Tirar foto
+        <input aria-label="Tirar foto com a câmera" type="file" accept="image/*" capture="environment" disabled={disabled} className="hidden" onChange={pick} />
+      </label>
+      <label className={cn(buttonVariants({ variant: "outline" }), "cursor-pointer")}>
+        <ImagePlus className="h-4 w-4" />Galeria / Anexar
+        <input aria-label="Anexar fotos da galeria" type="file" accept="image/*" multiple disabled={disabled} className="hidden" onChange={pick} />
+      </label>
+    </div>
+  );
+}
+
 function Checklists() {
   const { data: f } = useSuspenseQuery(fleetQuery);
   const parse = useServerFn(parseChecklist);
