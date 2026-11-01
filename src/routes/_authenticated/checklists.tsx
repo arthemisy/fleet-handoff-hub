@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown } from "lucide-react";
+import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib/fleet";
 import { parseChecklist, type ParsedChecklist } from "@/lib/checklist-ai.functions";
