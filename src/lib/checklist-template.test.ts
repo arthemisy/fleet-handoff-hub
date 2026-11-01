@@ -21,7 +21,23 @@ describe("manual conference template", () => {
       { label: "Pisca / seta esquerda", ok: false, note: "pisca lado motorista quebrado" },
     ]);
   });
-  it("does not silently save an unreviewed point as OK or reprovado", () => {
-    expect(() => reviewedItems([{ label: "Estepe", ok: null, note: null }])).toThrow("Marque OK ou X em: Estepe");
+  it("saves the conference without requiring every point to be marked", () => {
+    const items = createManualItems();
+    expect(() => reviewedItems(items)).not.toThrow();
+    expect(reviewedItems(items)).toEqual([]);
+    expect(reviewedCount(items)).toBe(0);
+    items[0]!.ok = true;
+    expect(reviewedCount(items)).toBe(1);
+    expect(reviewedItems(items)).toEqual([{ label: items[0]!.label, ok: true, note: null }]);
+  });
+  it("drops unmarked points instead of recording them as approved or reproved", () => {
+    expect(reviewedItems([
+      { label: "Estepe", ok: true, note: null },
+      { label: "Macaco", ok: null, note: null },
+      { label: "Pisca / seta esquerda", ok: false, note: "pisca lado motorista quebrado" },
+    ])).toEqual([
+      { label: "Estepe", ok: true, note: null },
+      { label: "Pisca / seta esquerda", ok: false, note: "pisca lado motorista quebrado" },
+    ]);
   });
 });

@@ -19,8 +19,11 @@ export function createManualItems(): DraftChecklistItem[] {
   return CHECKLIST_GROUPS.flatMap((group) => group.labels.map((label) => ({ label, ok: null, note: null })));
 }
 
+/** Points left without a mark are simply not saved — a conference never invents an approval. */
 export function reviewedItems(items: DraftChecklistItem[]) {
-  const pending = items.find((item) => item.ok === null);
-  if (pending) throw new Error(`Marque OK ou X em: ${pending.label || "novo item"}`);
-  return items.map((item) => ({ label: item.label, ok: item.ok === true, note: item.note }));
+  return items.filter((item) => item.ok !== null).map((item) => ({ label: item.label, ok: item.ok === true, note: item.note }));
+}
+
+export function reviewedCount(items: DraftChecklistItem[]) {
+  return items.filter((item) => item.ok !== null).length;
 }
