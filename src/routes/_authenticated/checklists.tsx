@@ -6,12 +6,15 @@ import { toast } from "sonner";
 import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil, Car, ClipboardList, ImagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib/fleet";
-import { parseChecklist, type ParsedChecklist } from "@/lib/checklist-ai.functions";
+import { parseChecklist } from "@/lib/checklist-ai.functions";
 import { dateStr, hm, legacyDateTime, timeStr, whenLabel } from "@/lib/checklist-time";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ChecklistItemsEditor } from "@/components/ChecklistItemsEditor";
-import { createManualItems, reviewedItems, type DraftChecklistItem } from "@/lib/checklist-template";
+import { createManualItems, reviewedItems } from "@/lib/checklist-template";
+import { freshChecklist, type ChecklistDraft } from "@/lib/checklist-draft";
+import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { useIsAdmin } from "@/lib/use-admin";
+import type { PlateCandidate } from "@/lib/plate-search";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +26,6 @@ export const Route = createFileRoute("/_authenticated/checklists")({
   component: Checklists,
 });
 
-type ChecklistDraft = Omit<ParsedChecklist, "items"> & { items: DraftChecklistItem[] };
 
 type Shot = { file: Blob; url: string };
 
@@ -37,12 +39,6 @@ async function shrink(file: File | Blob): Promise<Blob> {
   return new Promise((r) => c.toBlob((b) => r(b!), "image/jpeg", 0.85));
 }
 const toDataURL = (b: Blob) => new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(b); });
-
-const empty: ParsedChecklist = { plate: "", model: "", responsible: "", obra: "", checked_date: null, checked_time: null, km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "" };
-/** Identification is always on screen and always starts with the day and the clock time on this phone. */
-const freshForm = (): ChecklistDraft => ({ ...empty, checked_date: dateStr(new Date()), checked_time: timeStr(new Date()), items: [] });
-/** Same draft, with the ready-made list of conference points loaded in. */
-const manualForm = (): ChecklistDraft => ({ ...freshForm(), items: createManualItems() });
 
 /** Two pickers side by side: the phone's rear camera for a new shot, the gallery for photos that already exist. */
 function PhotoButtons({ onFiles, disabled }: { onFiles: (files: File[]) => void; disabled?: boolean }) {
@@ -71,7 +67,7 @@ function Checklists() {
   const parse = useServerFn(parseChecklist);
   const [text, setText] = useState("");
   const [shots, setShots] = useState<Shot[]>([]);
-  const [form, setForm] = useState<ChecklistDraft>(freshForm);
+  const [form, setForm] = useState<ChecklistDraft>(freshChecklist);
   const [busy, setBusy] = useState<"" | "read" | "save">("");
   const [updateVehicle, setUpdateVehicle] = useState(true);
   const [filter, setFilter] = useState("");
@@ -112,6 +108,17 @@ function Checklists() {
   const match = form.plate ? f.vehicles.find((v) => normPlate(v.plate) === normPlate(form.plate)) : undefined;
   const hasContent = form.items.length > 0 || text.trim().length > 0 || shots.length > 0;
 
+  /** Choosing a plate from the list also fills whatever is still blank about that car. */
+  function fillFrom(p: PlateCandidate) {
+    setForm((prev) => ({
+      ...prev,
+      plate: p.plate,
+      model: prev.model || p.model || "",
+      obra: prev.obra || p.obra || "",
+      responsible: prev.responsible || p.manager || "",
+    }));
+  }
+
   async function save() {
     if (!form.plate?.trim()) { toast.error("Informe a placa"); return; }
     setBusy("save");
@@ -139,7 +146,7 @@ function Checklists() {
         if (Object.keys(upd).length) await supabase.from("vehicles").update(upd).eq("id", match.id);
       }
       toast.success("Checklist salvo");
-      setForm(freshForm()); setText(""); setShots([]);
+      setForm(freshChecklist()); setText(""); setShots([]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
@@ -148,7 +155,7 @@ function Checklists() {
   }
 
   function clearAll() {
-    setForm(freshForm()); setText(""); setShots([]);
+    setForm(freshChecklist()); setText(""); setShots([]);
   }
 
   const list = f.checklists.filter((c) => `${c.plate} ${c.model} ${c.responsible} ${c.obra}`.toLowerCase().includes(filter.toLowerCase()));
@@ -166,7 +173,7 @@ function Checklists() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="space-y-1 md:col-span-2">
             <Label htmlFor="plate" className="text-sm font-bold">Placa</Label>
-            <Input id="plate" placeholder="MIW-0436" autoComplete="off" className="h-11 font-display text-lg font-extrabold uppercase tracking-wider" value={form.plate ?? ""} onChange={(e) => setForm({ ...form, plate: e.target.value })} />
+            <PlateAutocomplete id="plate" placeholder="Comece a digitar a placa" className="h-11 font-display text-lg font-extrabold uppercase tracking-wider" value={form.plate ?? ""} onChange={(v) => setForm({ ...form, plate: v })} onPick={fillFrom} />
           </div>
           <div className="space-y-1"><Label>Modelo</Label><Input placeholder="Logan" value={form.model ?? ""} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
           <div className="space-y-1"><Label>Responsável</Label><Input placeholder="Quem estava com o carro" value={form.responsible ?? ""} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
@@ -212,7 +219,7 @@ function Checklists() {
           <Button onClick={read} disabled={busy !== "" || (!text.trim() && !shots.length)} className="font-bold">
             <Sparkles className="h-4 w-4" />{busy === "read" ? "Lendo…" : "Ler checklist automaticamente"}
           </Button>
-          <Button variant="outline" onClick={() => setForm((p) => ({ ...p, items: createManualItems(), checked_date: p.checked_date || dateStr(new Date()), checked_time: p.checked_time || timeStr(new Date()) }))}>
+          <Button variant="outline" onClick={() => setForm((p) => ({ ...p, items: createManualItems() }))}>
             <ClipboardList className="h-4 w-4" />Preencher manualmente
           </Button>
         </div>
@@ -266,6 +273,17 @@ function SavedChecklist({ c }: { c: Checklist }) {
     });
   }, [open, missing.join("|")]);
   const urls = c.attachments.map((p) => urlMap[p]).filter(Boolean) as string[];
+
+  /** Choosing a plate from the list also fills whatever is still blank about that car. */
+  function fillEditFrom(p: PlateCandidate) {
+    setEf((prev) => ({
+      ...prev,
+      plate: p.plate,
+      model: prev.model || p.model || "",
+      obra: prev.obra || p.obra || "",
+      responsible: prev.responsible || p.manager || "",
+    }));
+  }
   async function remove() {
     if (!confirm("Excluir esta conferência?")) return;
     if (c.attachments.length) await supabase.storage.from("checklists").remove(c.attachments);
@@ -356,8 +374,9 @@ function SavedChecklist({ c }: { c: Checklist }) {
       {open && editing && (
         <div className="space-y-4 border-t p-3 text-sm">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"]] as const).map(([k, l]) => (
-              <div key={k} className="space-y-1"><Label>{l}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
+            <div className="space-y-1"><Label htmlFor="edit-plate">Placa</Label><PlateAutocomplete id="edit-plate" value={ef.plate ?? ""} onChange={(v) => setEf({ ...ef, plate: v })} onPick={fillEditFrom} /></div>
+            {(["model", "responsible", "obra"] as const).map((k) => (
+              <div key={k} className="space-y-1"><Label>{k === "model" ? "Modelo" : k === "responsible" ? "Responsável" : "Obra"}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
             ))}
             <div className="space-y-1"><Label className="flex items-center justify-between">Data<button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_date: dateStr(new Date()) })}>hoje</button></Label><Input type="date" value={ef.checked_date ?? ""} onChange={(e) => setEf({ ...ef, checked_date: e.target.value || null })} /></div>
             <div className="space-y-1"><Label className="flex items-center justify-between">Hora<button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_time: timeStr(new Date()) })}>agora</button></Label><Input type="time" value={ef.checked_time ?? ""} onChange={(e) => setEf({ ...ef, checked_time: e.target.value || null })} /></div>
