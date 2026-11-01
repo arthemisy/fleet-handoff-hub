@@ -29,6 +29,13 @@
       "when": 1793496280360,
       "tag": "0003_checklist_datetime_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793566228556,
+      "tag": "0004_vehicle_assignments",
+      "breakpoints": true
     }
   ]
 }

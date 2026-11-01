@@ -22,9 +22,12 @@ export type Database = {
           checked_time: string | null
           created_at: string
           created_by: string | null
+          employee: string | null
           id: string
           items: Json
           km: number | null
+          manager_id: string | null
+          manager_name: string | null
           model: string | null
           next_belt_km: number | null
           next_oil_km: number | null
@@ -41,9 +44,12 @@ export type Database = {
           checked_time?: string | null
           created_at?: string
           created_by?: string | null
+          employee?: string | null
           id?: string
           items?: Json
           km?: number | null
+          manager_id?: string | null
+          manager_name?: string | null
           model?: string | null
           next_belt_km?: number | null
           next_oil_km?: number | null
@@ -60,9 +66,12 @@ export type Database = {
           checked_time?: string | null
           created_at?: string
           created_by?: string | null
+          employee?: string | null
           id?: string
           items?: Json
           km?: number | null
+          manager_id?: string | null
+          manager_name?: string | null
           model?: string | null
           next_belt_km?: number | null
           next_oil_km?: number | null
@@ -151,6 +160,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vehicle_assignments: {
+        Row: {
+          checklist_id: string | null
+          created_at: string
+          employee: string | null
+          id: string
+          manager_id: string | null
+          plate: string
+          start_date: string | null
+        }
+        Insert: {
+          checklist_id?: string | null
+          created_at?: string
+          employee?: string | null
+          id?: string
+          manager_id?: string | null
+          plate: string
+          start_date?: string | null
+        }
+        Update: {
+          checklist_id?: string | null
+          created_at?: string
+          employee?: string | null
+          id?: string
+          manager_id?: string | null
+          plate?: string
+          start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_assignments_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "managers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehicles: {
         Row: {

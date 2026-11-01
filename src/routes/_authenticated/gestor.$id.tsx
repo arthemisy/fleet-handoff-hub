@@ -6,6 +6,9 @@ import { plateWarnings } from "@/lib/plates";
 import { useIsAdmin } from "@/lib/use-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, expensesForVehicle, fleetQuery, managerStats } from "@/lib/fleet";
+import { activeSince, returnedVehicles } from "@/lib/assignments";
+
+const br = (d?: string | null) => (d ? d.split("-").reverse().join("/") : "");
 import { Button } from "@/components/ui/button";
 import { VehicleDialog, ExpenseDialog } from "@/components/FleetDialogs";
 import { Stat } from "@/components/Stat";
@@ -24,6 +27,7 @@ function Gestor() {
   const m = f.managers.find((x) => x.id === id);
   if (!m) return <p>Pasta não encontrada. <Link to="/painel" className="text-primary">Voltar</Link></p>;
   const s = managerStats(m, f);
+  const returned = returnedVehicles(m, f.vehicles, f.assignments);
   const warns = plateWarnings(f.vehicles, f.expenses, f.managers);
   const exp = [...s.expenses].sort((a, b) => (b.expense_date ?? "").localeCompare(a.expense_date ?? ""));
 
@@ -63,7 +67,8 @@ function Gestor() {
         <h2 className="mb-3 font-display font-extrabold text-primary">VEÍCULOS</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {s.vehicles.map((v) => {
-            const ve = expensesForVehicle(v, f.expenses);
+            const ve = expensesForVehicle(v, s.expenses);
+            const since = activeSince(v, f.assignments);
             const last = f.checklists.find((c) => c.plate.replace(/\W/g, "") === v.plate.replace(/\W/g, ""));
             return (
               <div key={v.id} className="rounded-xl border bg-card p-4">
@@ -73,7 +78,7 @@ function Gestor() {
                     <p className="text-sm text-muted-foreground">{v.model}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${v.status === "Ativo" ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>{v.status}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${v.status === "Ativo" ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>{v.status === "Ativo" && since ? `ATIVO DESDE ${br(since)}` : v.status}</span>
                     <VehicleDialog vehicle={v} managers={f.managers} trigger={<Button variant="ghost" size="icon" aria-label="Editar"><Pencil className="h-4 w-4" /></Button>} />
                   </div>
                 </div>
@@ -95,6 +100,30 @@ function Gestor() {
           {s.vehicles.length === 0 && <p className="text-sm text-muted-foreground">Pasta vazia. Adicione um veículo.</p>}
         </div>
       </section>
+
+      {returned.length > 0 && (
+        <section>
+          <h2 className="mb-3 font-display font-extrabold text-primary">VEÍCULOS DEVOLVIDOS</h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {returned.map(({ vehicle: v, returnedOn }) => {
+              const ve = expensesForVehicle(v, s.expenses);
+              return (
+                <div key={v.id} className="rounded-xl border bg-muted/40 p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-display text-lg font-extrabold tracking-wide">{v.plate}</p>
+                      <p className="text-sm text-muted-foreground">{v.model}</p>
+                    </div>
+                    <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">DEVOLVIDO{returnedOn ? ` EM ${br(returnedOn)}` : ""}</span>
+                  </div>
+                  <p className="mt-2 text-sm">Agora com: <b>{f.managers.find((x) => x.id === v.manager_id)?.name ?? "—"}</b></p>
+                  <p className="mt-2 border-t pt-2 text-sm font-bold text-primary">{brl(ve.reduce((a, e) => a + Number(e.amount), 0))} <span className="text-xs font-normal text-muted-foreground">· {ve.length} gastos enquanto esteve com {m.name.split(" ")[0]}</span></p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 font-display font-extrabold text-primary">GASTOS</h2>

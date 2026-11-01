@@ -19,7 +19,7 @@ type Props = {
  * Plate field with a live search list: as the person types, the plates already saved
  * (fleet, past conferences, maintenance sheet) drop down and one tap fills the field.
  */
-export function PlateAutocomplete({ value, onChange, onPick, id, placeholder = "MIW-0436", className }: Props) {
+export function PlateAutocomplete({ value, onChange, onPick, id, placeholder, className }: Props) {
   const { data: f } = useQuery(fleetQuery);
   const cands = useMemo(() => plateCandidates(f), [f]);
   const [open, setOpen] = useState(false);
@@ -103,8 +103,8 @@ export function PlateAutocomplete({ value, onChange, onPick, id, placeholder = "
                   i === hi && "bg-primary/10",
                 )}
               >
-                <span className="font-display text-sm font-extrabold tracking-wide">{c.plate}</span>
-                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                <span className="font-display text-base font-extrabold tracking-wide">{c.plate}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
                   {[c.model, c.manager, c.linked ? "placa vinculada" : null].filter(Boolean).join(" · ")}
                 </span>
                 {c.source !== "frota" && (
