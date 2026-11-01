@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Layers, Car, Users, Wallet, FileText, FolderOpen, Plus, ArrowRight } from "lucide-react";
+import { Layers, Car, Wallet, AlertTriangle, FileText, FolderOpen, Plus, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, fleetQuery, managerStats } from "@/lib/fleet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/Stat";
+import { plateWarnings } from "@/lib/plates";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({ meta: [{ title: "Painel · Controle de Frota" }, { name: "description", content: "Pastas dos gestores e gastos consolidados." }, { property: "og:title", content: "Painel · Controle de Frota" }, { property: "og:description", content: "Pastas dos gestores e gastos consolidados." }] }),
@@ -21,6 +22,7 @@ function Painel() {
   const stats = f.managers.map((m) => ({ m, s: managerStats(m, f) }));
   const total = stats.reduce((a, x) => a + x.s.total, 0);
   const max = Math.max(1, ...stats.map((x) => x.s.total));
+  const warnings = plateWarnings(f.vehicles, f.expenses, f.managers);
 
   async function addManager() {
     const name = newName.trim();
@@ -37,13 +39,24 @@ function Painel() {
         <h1 className="font-display text-2xl font-extrabold md:text-3xl"><span className="text-brand-blue">GESTÃO DE FROTA</span> <span className="text-brand-red">ELETROMW</span></h1>
         <p className="text-sm text-muted-foreground">Gestores de obra, veículos, efetivos e gastos consolidados por placa.</p>
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={Layers} label="Gestores" value={f.managers.length} tone="plain" />
         <Stat icon={Car} label="Veículos" value={f.vehicles.length} tone="blue" />
-        <Stat icon={Users} label="Efetivos" value={f.vehicles.reduce((a, v) => a + v.efetivos, 0)} tone="blue" />
         <Stat icon={Wallet} label="Total gasto" value={brl(total)} tone="yellow" sub="Soma das pastas" />
         <Stat icon={FileText} label="Registros" value={f.expenses.length} tone="yellow" />
       </div>
+
+      {warnings.length > 0 && (
+        <details className="rounded-xl border border-destructive/50 bg-destructive/10 p-4" open={warnings.length <= 6}>
+          <summary className="flex cursor-pointer items-center gap-2 font-bold text-destructive"><AlertTriangle className="h-5 w-5" />{warnings.length} aviso{warnings.length > 1 ? "s" : ""} de placa (repetida ou com erro de preenchimento)</summary>
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {warnings.map((w, i) => (
+              <li key={i} className="flex gap-2"><span className={`shrink-0 rounded px-1.5 text-[10px] font-bold uppercase leading-5 ${w.kind === "duplicate" ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>{w.kind === "duplicate" ? "Repetida" : w.kind === "invalid" ? "Formato" : "Não cadastrada"}</span>{w.message}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">A referência é a lista de placas da planilha de manutenções. Corrija editando o veículo.</p>
+        </details>
+      )}
 
       <section>
         <h2 className="mb-5 flex items-center gap-2 font-display font-extrabold text-primary"><FolderOpen className="h-5 w-5" />PASTAS DOS GESTORES</h2>
@@ -59,8 +72,7 @@ function Painel() {
                     <p className="text-xs text-muted-foreground">{s.vehicles.length} veículos{s.repeated ? ` · ${s.repeated} placa${s.repeated > 1 ? "s" : ""} repetida${s.repeated > 1 ? "s" : ""}` : ""}</p>
                   </div>
                 </div>
-                <div className="mt-4 grid grid-cols-[1fr_2fr] gap-2 text-center">
-                  <div className="rounded-lg bg-background/60 p-2"><p className="text-[10px] uppercase text-muted-foreground">Efetivos</p><p className="font-bold">{s.efetivos}</p></div>
+                <div className="mt-4 text-center">
                   <div className="rounded-lg bg-background/60 p-2"><p className="text-[10px] uppercase text-muted-foreground">Total gasto</p><p className="font-bold text-primary">{brl(s.total)}</p></div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">

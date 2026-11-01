@@ -3,6 +3,7 @@ import { FolderOpen, Car, ClipboardCheck, Upload, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { useFleetRealtime } from "@/lib/fleet";
+import { useIsAdmin } from "@/lib/use-admin";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -22,6 +23,7 @@ const NAV = [
 
 function Shell() {
   useFleetRealtime();
+  const isAdmin = useIsAdmin();
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <div className="flex min-h-screen">
@@ -38,7 +40,9 @@ function Shell() {
             );
           })}
         </nav>
-        <button onClick={() => supabase.auth.signOut()} className="mt-auto flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted">
+        <div className="mt-auto" />
+        {isAdmin && <p className="mb-2 rounded-lg border border-primary/40 px-3 py-2 text-xs font-bold text-primary">Administradora principal</p>}
+        <button onClick={() => supabase.auth.signOut()} className=" flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted">
           <LogOut className="h-4 w-4" /> Sair
         </button>
       </aside>

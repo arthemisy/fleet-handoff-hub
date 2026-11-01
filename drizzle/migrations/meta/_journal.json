@@ -8,6 +8,13 @@
       "when": 1793491153035,
       "tag": "0000_fleet_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793492181769,
+      "tag": "0001_admin_role",
+      "breakpoints": true
     }
   ]
 }

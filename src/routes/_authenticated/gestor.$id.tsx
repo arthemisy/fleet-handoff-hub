@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Car, Users, Wallet, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Car, Wallet, FileText, AlertTriangle } from "lucide-react";
+import { plateWarnings } from "@/lib/plates";
+import { useIsAdmin } from "@/lib/use-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, expensesForVehicle, fleetQuery, managerStats } from "@/lib/fleet";
 import { Button } from "@/components/ui/button";
@@ -18,9 +20,11 @@ function Gestor() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { data: f } = useSuspenseQuery(fleetQuery);
+  const isAdmin = useIsAdmin();
   const m = f.managers.find((x) => x.id === id);
   if (!m) return <p>Pasta não encontrada. <Link to="/painel" className="text-primary">Voltar</Link></p>;
   const s = managerStats(m, f);
+  const warns = plateWarnings(f.vehicles, f.expenses, f.managers);
   const exp = [...s.expenses].sort((a, b) => (b.expense_date ?? "").localeCompare(a.expense_date ?? ""));
 
   async function rename() {
@@ -45,13 +49,12 @@ function Gestor() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={rename}>Renomear</Button>
-          <Button variant="ghost" size="sm" className="text-destructive" onClick={remove}>Excluir pasta</Button>
+          {isAdmin && <Button variant="ghost" size="sm" className="text-destructive" onClick={remove}>Excluir pasta</Button>}
           <VehicleDialog managers={f.managers} defaultManagerId={m.id} trigger={<Button size="sm"><Plus className="h-4 w-4" />Veículo</Button>} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Stat icon={Car} label="Veículos" value={s.vehicles.length} tone="blue" />
-        <Stat icon={Users} label="Efetivos" value={s.efetivos} tone="blue" />
         <Stat icon={Wallet} label="Total gasto" value={brl(s.total)} tone="yellow" />
         <Stat icon={FileText} label="Registros" value={s.expenses.length} tone="yellow" />
       </div>
@@ -79,6 +82,7 @@ function Gestor() {
                     <div key={k as string}><dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{x}</dd></div>
                   ))}
                 </dl>
+                {warns.filter((w) => w.vehicleIds.includes(v.id)).map((w, i) => <p key={i} className="mt-2 flex gap-1.5 rounded-md bg-destructive/15 p-2 text-xs text-destructive"><AlertTriangle className="h-4 w-4 shrink-0" />{w.message}</p>)}
                 {v.observacao && <p className="mt-2 text-xs italic text-muted-foreground">{v.observacao}</p>}
                 <div className="mt-3 flex items-center justify-between border-t pt-3 text-sm">
                   <span className="font-bold text-primary">{brl(ve.reduce((a, e) => a + Number(e.amount), 0))} <span className="text-xs font-normal text-muted-foreground">· {ve.length} gastos</span></span>

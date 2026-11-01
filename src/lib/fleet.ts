@@ -83,7 +83,6 @@ export function managerStats(m: Manager, f: Fleet) {
     vehicles,
     expenses,
     total: expenses.reduce((s, e) => s + Number(e.amount), 0),
-    efetivos: vehicles.reduce((s, v) => s + (v.efetivos ?? 0), 0),
     repeated: [...counts.values()].filter((c) => c > 1).length,
     obras: [...new Set(vehicles.map((v) => v.obra).filter(Boolean))] as string[],
   };

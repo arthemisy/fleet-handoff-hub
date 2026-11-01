@@ -59,7 +59,6 @@ function Importar() {
           plate: String(r["Placa"]).trim().toUpperCase(),
           obra: str(r["Obra"]), projeto: str(r["Projeto"]), local: str(r["Local"]),
           encarregado: str(r["Encarregado"]), motorista: str(r["Motorista"]),
-          efetivos: Number(r["Efetivos"]) || 0,
           status: str(r["Situação"]) ?? "Ativo",
           observacao: str(r["Observação"]), linked_plates: str(r["Placas vinculadas"]),
         }))
