@@ -306,7 +306,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
         <div className="space-y-4 border-t p-3 text-sm">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"], ["checked_at", "Data / horário"]] as const).map(([k, l]) => (
-              <div key={k} className="space-y-1"><Label>{l}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
+              <div key={k} className="space-y-1"><Label className="flex items-center justify-between">{l}{k === "checked_at" && <button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_at: nowStr() })}>agora</button>}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
             ))}
             {([["km", "KM atual"], ["next_belt_km", "Próx. correia (KM)"], ["next_oil_km", "Próx. óleo (KM)"]] as const).map(([k, l]) => (
               <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
@@ -329,6 +329,27 @@ function SavedChecklist({ c }: { c: Checklist }) {
             <Button variant="ghost" size="sm" className="mt-1" onClick={() => setEf({ ...ef, items: [...ef.items, { label: "", ok: true, note: null }] })}>+ Item</Button>
           </div>
           <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={ef.notes ?? ""} onChange={(e) => setEf({ ...ef, notes: e.target.value })} /></div>
+          <div>
+            <Label className="mb-1.5 flex items-center gap-1.5"><Camera className="h-4 w-4" />Fotos e prints</Label>
+            <div className="flex flex-wrap gap-2">
+              {att.map((p) => (
+                <div key={p} className="relative">
+                  {urlMap[p] ? <img src={urlMap[p]} alt="Anexo" className="h-24 w-20 rounded-md border object-cover" /> : <div className="h-24 w-20 rounded-md border bg-muted" />}
+                  <button aria-label="Remover foto" onClick={() => setAtt(att.filter((x) => x !== p))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
+                </div>
+              ))}
+              {newShots.map((s, i) => (
+                <div key={s.url} className="relative">
+                  <img src={s.url} alt="Nova foto" className="h-24 w-20 rounded-md border border-primary object-cover" />
+                  <button aria-label="Remover foto" onClick={() => setNewShots(newShots.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button>
+                </div>
+              ))}
+              <label className="flex h-24 w-20 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground hover:border-primary">
+                <Camera className="h-5 w-5" />Adicionar
+                <input aria-label="Adicionar fotos" type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && addEditFiles(e.target.files)} />
+              </label>
+            </div>
+          </div>
           <div className="space-y-1"><Label>Mensagem original</Label><Textarea rows={5} value={ef.raw_text} onChange={(e) => setEf({ ...ef, raw_text: e.target.value })} /></div>
           <div className="flex gap-2">
             <Button onClick={saveEdit} disabled={saving} className="font-bold"><Save className="h-4 w-4" />{saving ? "Salvando…" : "Salvar alterações"}</Button>
