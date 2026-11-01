@@ -7,8 +7,10 @@ describe("manual conference template", () => {
     expect(items.map((item) => item.label)).toEqual(expect.arrayContaining(["Estepe", "Macaco", "Triângulo", "Cartão de abastecimento", "Pisca / seta esquerda", "Pisca / seta direita", "Vazamento de óleo", "Correia dentada", "Rack", "Cintas de amarração"]));
     expect(items.every((item) => item.ok === null)).toBe(true);
     expect(new Set(items.map((item) => item.label)).size).toBe(items.length);
-    items[0].note = "alterado";
-    expect(createManualItems()[0].note).toBeNull();
+    const first = items[0];
+    if (!first) throw new Error("Template vazio");
+    first.note = "alterado";
+    expect(createManualItems()[0]?.note).toBeNull();
   });
   it("preserves OK, X and each point's negative observation when saving", () => {
     expect(reviewedItems([
