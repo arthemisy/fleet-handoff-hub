@@ -15,3 +15,4 @@
 - Live sync: `useFleetRealtime` in the authenticated layout invalidates the single `["fleet"]` query on any table change.
 - Checklist reading uses a server function calling the AI gateway (Responses, strict JSON schema); photos go to the private `checklists` bucket.
 - Installable on phones via manifest only (no service worker / offline).
+- Manual conference points live in a shared template and item editor; unreviewed results stay null in the draft and must be explicitly reviewed before saving so no default approval is recorded.
