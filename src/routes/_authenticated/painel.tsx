@@ -63,8 +63,8 @@ function Painel() {
         <div className="grid gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
           {stats.map(({ m, s }) => (
             <Link key={m.id} to="/gestor/$id" params={{ id: m.id }} className="group relative block">
-              <div className="absolute -top-3 left-4 h-4 w-20 rounded-t-md bg-primary/80" />
-              <div className="relative rounded-xl border border-primary/30 bg-folder p-4 transition group-hover:border-primary">
+              <div className="absolute -top-3 left-4 h-4 w-20 rounded-t-md bg-brand-yellow" />
+              <div className="relative rounded-xl border bg-folder p-4 shadow-sm transition group-hover:border-primary group-hover:shadow-md">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg bg-primary/20 p-2.5 text-primary"><FolderOpen className="h-5 w-5" /></div>
                   <div>
