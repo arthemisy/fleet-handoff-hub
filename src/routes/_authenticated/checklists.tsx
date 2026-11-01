@@ -7,6 +7,7 @@ import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, 
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib/fleet";
 import { parseChecklist, type ParsedChecklist } from "@/lib/checklist-ai.functions";
+import { dateStr, hm, legacyDateTime, timeStr, whenLabel } from "@/lib/checklist-time";
 import { Button } from "@/components/ui/button";
 import { useIsAdmin } from "@/lib/use-admin";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,9 @@ async function shrink(file: File | Blob): Promise<Blob> {
 }
 const toDataURL = (b: Blob) => new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(b); });
 
-const empty: ParsedChecklist = { plate: "", model: "", responsible: "", obra: "", checked_at: "", km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "" };
+const empty: ParsedChecklist = { plate: "", model: "", responsible: "", obra: "", checked_date: null, checked_time: null, km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "" };
+/** Manual fill always starts with the day and the clock time on this phone. */
+const nowForm = (): ParsedChecklist => ({ ...empty, checked_date: dateStr(new Date()), checked_time: timeStr(new Date()) });
 
 function Checklists() {
   const { data: f } = useSuspenseQuery(fleetQuery);
@@ -67,8 +70,8 @@ function Checklists() {
     setBusy("read");
     try {
       const images = await Promise.all(shots.map((s) => toDataURL(s.file)));
-      const r = await parse({ data: { text, images } });
-      setForm(r);
+      const r = await parse({ data: { text, images, today: dateStr(new Date()) } });
+      setForm({ ...r, checked_date: r.checked_date || dateStr(new Date()), checked_time: r.checked_time || timeStr(new Date()) });
       toast.success("Checklist lido — confira e salve");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha na leitura");
@@ -93,7 +96,7 @@ function Checklists() {
       }
       const { error } = await supabase.from("checklists").insert({
         plate: form.plate.trim().toUpperCase(), model: form.model || match?.model || null, responsible: form.responsible || null,
-        obra: form.obra || null, checked_at: form.checked_at || null, km: form.km, next_belt_km: form.next_belt_km,
+        obra: form.obra || null, checked_date: form.checked_date || null, checked_time: form.checked_time || null, km: form.km, next_belt_km: form.next_belt_km,
         next_oil_km: form.next_oil_km, items: form.items, notes: form.notes || null, raw_text: text || null,
         attachments: paths, created_by: u.user?.id ?? null,
       });
@@ -143,7 +146,7 @@ function Checklists() {
           <Button onClick={read} disabled={busy !== "" || (!text.trim() && !shots.length)} className="font-bold">
             <Sparkles className="h-4 w-4" />{busy === "read" ? "Lendo…" : "Ler checklist automaticamente"}
           </Button>
-          <Button variant="outline" onClick={() => setForm({ ...empty })}>Preencher manualmente</Button>
+          <Button variant="outline" onClick={() => setForm(nowForm())}>Preencher manualmente</Button>
         </div>
       </section>
 
@@ -151,9 +154,11 @@ function Checklists() {
         <section className="space-y-4 rounded-xl border border-primary/50 bg-card p-4">
           <h2 className="font-display font-extrabold text-primary">CONFIRA OS DADOS</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"], ["checked_at", "Data / horário"]] as const).map(([k, l]) => (
+            {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"]] as const).map(([k, l]) => (
               <div key={k} className="space-y-1"><Label>{l}</Label><Input value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} /></div>
             ))}
+            <div className="space-y-1"><Label className="flex items-center justify-between">Data<button type="button" className="text-xs text-primary" onClick={() => setForm({ ...form, checked_date: dateStr(new Date()) })}>hoje</button></Label><Input type="date" value={form.checked_date ?? ""} onChange={(e) => setForm({ ...form, checked_date: e.target.value || null })} /></div>
+            <div className="space-y-1"><Label className="flex items-center justify-between">Hora<button type="button" className="text-xs text-primary" onClick={() => setForm({ ...form, checked_time: timeStr(new Date()) })}>agora</button></Label><Input type="time" value={form.checked_time ?? ""} onChange={(e) => setForm({ ...form, checked_time: e.target.value || null })} /></div>
             {([["km", "KM atual"], ["next_belt_km", "Próx. correia (KM)"], ["next_oil_km", "Próx. óleo (KM)"]] as const).map(([k, l]) => (
               <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
             ))}
@@ -201,7 +206,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
   const isAdmin = useIsAdmin();
   const [urlMap, setUrlMap] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
-  const [ef, setEf] = useState<ParsedChecklist & { raw_text: string }>({ plate: "", model: "", responsible: "", obra: "", checked_at: "", km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "", raw_text: "" });
+  const [ef, setEf] = useState<ParsedChecklist & { raw_text: string }>({ plate: "", model: "", responsible: "", obra: "", checked_date: null, checked_time: null, km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "", raw_text: "" });
   const [att, setAtt] = useState<string[]>([]);
   const [newShots, setNewShots] = useState<Shot[]>([]);
   const [saving, setSaving] = useState(false);
@@ -226,7 +231,9 @@ function SavedChecklist({ c }: { c: Checklist }) {
   function startEdit() {
     setEf({
       plate: c.plate, model: c.model ?? "", responsible: c.responsible ?? "", obra: c.obra ?? "",
-      checked_at: c.checked_at ?? "", km: c.km, next_belt_km: c.next_belt_km, next_oil_km: c.next_oil_km,
+      checked_date: c.checked_date ?? legacyDateTime(c.checked_at).checked_date ?? dateStr(new Date()),
+      checked_time: hm(c.checked_time) || legacyDateTime(c.checked_at).checked_time || timeStr(new Date()),
+      km: c.km, next_belt_km: c.next_belt_km, next_oil_km: c.next_oil_km,
       items: items.map((i) => ({ label: i.label, ok: i.ok, note: i.note ?? null })), notes: c.notes ?? "", raw_text: c.raw_text ?? "",
     });
     setAtt([...c.attachments]);
@@ -256,7 +263,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
       }
       const { error } = await supabase.from("checklists").update({
         plate: plate.toUpperCase(), model: ef.model || null, responsible: ef.responsible || null,
-        obra: ef.obra || null, checked_at: ef.checked_at || null, km: ef.km, next_belt_km: ef.next_belt_km,
+        obra: ef.obra || null, checked_date: ef.checked_date || null, checked_time: ef.checked_time || null, km: ef.km, next_belt_km: ef.next_belt_km,
         next_oil_km: ef.next_oil_km, items: ef.items, notes: ef.notes || null, raw_text: ef.raw_text || null,
         attachments: [...att, ...paths],
       }).eq("id", c.id);
@@ -270,13 +277,12 @@ function SavedChecklist({ c }: { c: Checklist }) {
       setSaving(false);
     }
   }
-  const nowStr = () => new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
   return (
     <div className="rounded-xl border bg-card">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 p-3 text-left">
         <div className="min-w-0 flex-1">
           <p className="font-display font-extrabold tracking-wide">{c.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{c.model}</span></p>
-          <p className="truncate text-xs text-muted-foreground">{c.checked_at ?? new Date(c.created_at).toLocaleString("pt-BR")} · {c.obra ?? "—"} · {c.responsible ?? "—"}</p>
+          <p className="truncate text-xs text-muted-foreground">{whenLabel(c)} · {c.obra ?? "—"} · {c.responsible ?? "—"}</p>
         </div>
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${bad ? "bg-destructive/20 text-destructive" : "bg-success/20 text-success"}`}>{bad ? `${bad} pendência${bad > 1 ? "s" : ""}` : "Tudo OK"}</span>
         <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
@@ -305,9 +311,11 @@ function SavedChecklist({ c }: { c: Checklist }) {
       {open && editing && (
         <div className="space-y-4 border-t p-3 text-sm">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"], ["checked_at", "Data / horário"]] as const).map(([k, l]) => (
-              <div key={k} className="space-y-1"><Label className="flex items-center justify-between">{l}{k === "checked_at" && <button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_at: nowStr() })}>agora</button>}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
+            {([["plate", "Placa"], ["model", "Modelo"], ["responsible", "Responsável"], ["obra", "Obra"]] as const).map(([k, l]) => (
+              <div key={k} className="space-y-1"><Label>{l}</Label><Input value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} /></div>
             ))}
+            <div className="space-y-1"><Label className="flex items-center justify-between">Data<button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_date: dateStr(new Date()) })}>hoje</button></Label><Input type="date" value={ef.checked_date ?? ""} onChange={(e) => setEf({ ...ef, checked_date: e.target.value || null })} /></div>
+            <div className="space-y-1"><Label className="flex items-center justify-between">Hora<button type="button" className="text-xs text-primary" onClick={() => setEf({ ...ef, checked_time: timeStr(new Date()) })}>agora</button></Label><Input type="time" value={ef.checked_time ?? ""} onChange={(e) => setEf({ ...ef, checked_time: e.target.value || null })} /></div>
             {([["km", "KM atual"], ["next_belt_km", "Próx. correia (KM)"], ["next_oil_km", "Próx. óleo (KM)"]] as const).map(([k, l]) => (
               <div key={k} className="space-y-1"><Label>{l}</Label><Input type="number" value={ef[k] ?? ""} onChange={(e) => setEf({ ...ef, [k]: e.target.value ? Number(e.target.value) : null })} /></div>
             ))}
