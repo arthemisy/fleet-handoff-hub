@@ -3,3 +3,4 @@
 - [x] Use uploaded EletroMW logo in app + favicon/app icon
 - [x] Remove "efetivos" everywhere
 - [x] Warn about duplicated / mistyped plates using manutenções 2026 plate list as reference
+- [x] Checklist: separate Data and Hora fields, prefilled with the phone's current date/time, still editable
