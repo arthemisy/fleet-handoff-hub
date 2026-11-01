@@ -27,7 +27,9 @@ export function PlateAutocomplete({ value, onChange, onPick, id, placeholder = "
 
   const list = useMemo(() => searchPlates(cands, value), [cands, value]);
   const resolved = useMemo(() => exactVehicle(cands, value), [cands, value]);
-  const show = open && !resolved && list.length > 0;
+  /** The list only appears once something was typed — an empty field stays quiet. */
+  const typing = value.trim().length > 0;
+  const show = open && typing && !resolved && list.length > 0;
 
   function pick(c: PlateCandidate) {
     onChange(c.plate);
@@ -63,6 +65,7 @@ export function PlateAutocomplete({ value, onChange, onPick, id, placeholder = "
         onFocus={() => setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            if (!typing) return;
             e.preventDefault();
             if (!show) {
               setOpen(true);

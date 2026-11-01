@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil, Car, ClipboardList, ImagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib/fleet";
-import { parseChecklist, type ParsedChecklist } from "@/lib/checklist-ai.functions";
+import { parseChecklist } from "@/lib/checklist-ai.functions";
 import { dateStr, hm, legacyDateTime, timeStr, whenLabel } from "@/lib/checklist-time";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ChecklistItemsEditor } from "@/components/ChecklistItemsEditor";
-import { createManualItems, reviewedItems, type DraftChecklistItem } from "@/lib/checklist-template";
+import { createManualItems, reviewedItems } from "@/lib/checklist-template";
+import { freshChecklist, type ChecklistDraft } from "@/lib/checklist-draft";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { useIsAdmin } from "@/lib/use-admin";
 import type { PlateCandidate } from "@/lib/plate-search";
@@ -25,7 +26,6 @@ export const Route = createFileRoute("/_authenticated/checklists")({
   component: Checklists,
 });
 
-type ChecklistDraft = Omit<ParsedChecklist, "items"> & { items: DraftChecklistItem[] };
 
 type Shot = { file: Blob; url: string };
 
@@ -39,12 +39,6 @@ async function shrink(file: File | Blob): Promise<Blob> {
   return new Promise((r) => c.toBlob((b) => r(b!), "image/jpeg", 0.85));
 }
 const toDataURL = (b: Blob) => new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(b); });
-
-const empty: ParsedChecklist = { plate: "", model: "", responsible: "", obra: "", checked_date: null, checked_time: null, km: null, next_belt_km: null, next_oil_km: null, items: [], notes: "" };
-/** Identification is always on screen and always starts with the day and the clock time on this phone. */
-const freshForm = (): ChecklistDraft => ({ ...empty, checked_date: dateStr(new Date()), checked_time: timeStr(new Date()), items: [] });
-/** Same draft, with the ready-made list of conference points loaded in. */
-const manualForm = (): ChecklistDraft => ({ ...freshForm(), items: createManualItems() });
 
 /** Two pickers side by side: the phone's rear camera for a new shot, the gallery for photos that already exist. */
 function PhotoButtons({ onFiles, disabled }: { onFiles: (files: File[]) => void; disabled?: boolean }) {
@@ -73,7 +67,7 @@ function Checklists() {
   const parse = useServerFn(parseChecklist);
   const [text, setText] = useState("");
   const [shots, setShots] = useState<Shot[]>([]);
-  const [form, setForm] = useState<ChecklistDraft>(freshForm);
+  const [form, setForm] = useState<ChecklistDraft>(freshChecklist);
   const [busy, setBusy] = useState<"" | "read" | "save">("");
   const [updateVehicle, setUpdateVehicle] = useState(true);
   const [filter, setFilter] = useState("");
@@ -152,7 +146,7 @@ function Checklists() {
         if (Object.keys(upd).length) await supabase.from("vehicles").update(upd).eq("id", match.id);
       }
       toast.success("Checklist salvo");
-      setForm(freshForm()); setText(""); setShots([]);
+      setForm(freshChecklist()); setText(""); setShots([]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
@@ -161,7 +155,7 @@ function Checklists() {
   }
 
   function clearAll() {
-    setForm(freshForm()); setText(""); setShots([]);
+    setForm(freshChecklist()); setText(""); setShots([]);
   }
 
   const list = f.checklists.filter((c) => `${c.plate} ${c.model} ${c.responsible} ${c.obra}`.toLowerCase().includes(filter.toLowerCase()));
@@ -225,7 +219,7 @@ function Checklists() {
           <Button onClick={read} disabled={busy !== "" || (!text.trim() && !shots.length)} className="font-bold">
             <Sparkles className="h-4 w-4" />{busy === "read" ? "Lendo…" : "Ler checklist automaticamente"}
           </Button>
-          <Button variant="outline" onClick={() => setForm((p) => ({ ...p, items: createManualItems(), checked_date: p.checked_date || dateStr(new Date()), checked_time: p.checked_time || timeStr(new Date()) }))}>
+          <Button variant="outline" onClick={() => setForm((p) => ({ ...p, items: createManualItems() }))}>
             <ClipboardList className="h-4 w-4" />Preencher manualmente
           </Button>
         </div>
