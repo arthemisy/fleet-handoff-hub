@@ -80,6 +80,13 @@ export function resolveGestor(name: string, managers: Manager[], vehicles: Vehic
   if (!n) return { kind: "empty" };
   const m = managers.find((x) => normName(x.name) === n);
   if (m) return { kind: "manager", manager: m };
+  // only the first name ("Maicon" = Maicon Dias), when it points to a single gestor
+  const byFirst = managers.filter((x) => normName(x.name).split(" ")[0] === n.split(" ")[0]);
+  if (!n.includes(" ") && byFirst.length === 1) return { kind: "manager", manager: byFirst[0]! };
+  if (n.includes(" ") && byFirst.length === 1 && normName(byFirst[0]!.name).startsWith(n.split(" ")[0]! + " ")) {
+    const last = n.split(" ").slice(1).join(" ");
+    if (normName(byFirst[0]!.name).includes(last.slice(0, 4))) return { kind: "manager", manager: byFirst[0]! };
+  }
   const people: { name: string; managerId: string | null }[] = [];
   vehicles.forEach((v) => [v.encarregado, v.motorista].forEach((p) => p && people.push({ name: p, managerId: v.manager_id })));
   assignments.forEach((a) => a.employee && people.push({ name: a.employee, managerId: a.manager_id }));

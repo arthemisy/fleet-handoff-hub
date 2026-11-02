@@ -41,3 +41,15 @@ describe("GESTOR name", () => {
     expect(resolveGestor("João Novo", [rafael, maicon], vs, [])).toEqual({ kind: "new", name: "João Novo" });
   });
 });
+
+describe("team rules", () => {
+  it("first name alone means the gestor", async () => {
+    expect(resolveGestor("Maicon", [rafael, maicon], [], [])).toMatchObject({ kind: "manager", manager: maicon });
+    expect(resolveGestor("rafael pupulin", [rafael, maicon], [], [])).toMatchObject({ kind: "manager", manager: rafael });
+  });
+  it("obra Terreno means the car is with Maicon", async () => {
+    const { isTerreno, terrenoManager } = await import("./assignments");
+    expect(isTerreno(" Terreno ")).toBe(true);
+    expect(terrenoManager([rafael, maicon])).toBe(maicon);
+  });
+});
