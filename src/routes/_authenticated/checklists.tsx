@@ -14,7 +14,7 @@ import { createManualItems, reviewedItems } from "@/lib/checklist-template";
 import { freshChecklist, type ChecklistDraft } from "@/lib/checklist-draft";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { useIsAdmin } from "@/lib/use-admin";
-import { historyFor, resolveGestor } from "@/lib/assignments";
+import { historyFor, isTerreno, resolveGestor, terrenoManager } from "@/lib/assignments";
 import type { PlateCandidate } from "@/lib/plate-search";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -137,6 +137,8 @@ function Checklists() {
   /** The checklist hands the car over: new gestor's folder from that date on, the old one keeps what was spent before. */
   async function handover(checklistId: string | null) {
     let r = resolveGestor(form.gestor ?? "", f.managers, f.vehicles, f.assignments);
+    const yard = isTerreno(form.obra) ? terrenoManager(f.managers) : undefined;
+    if (yard) r = { kind: "manager", manager: yard };
     let employee = (form.funcionario ?? "").trim() || null;
     if (r.kind === "empty") return;
     if (r.kind === "employee") { employee = employee ?? r.employee; r = { kind: "manager", manager: r.manager }; }
