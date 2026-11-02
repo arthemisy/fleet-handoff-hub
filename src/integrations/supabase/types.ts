@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_approvals: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          email: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          email?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          email?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       checklists: {
         Row: {
           attachments: string[]
@@ -273,6 +297,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_team: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"

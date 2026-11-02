@@ -36,6 +36,13 @@
       "when": 1793566228556,
       "tag": "0004_vehicle_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793656520290,
+      "tag": "0005_account_approvals",
+      "breakpoints": true
     }
   ]
 }
