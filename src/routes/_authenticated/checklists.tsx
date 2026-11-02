@@ -14,7 +14,7 @@ import { createManualItems, reviewedItems } from "@/lib/checklist-template";
 import { freshChecklist, type ChecklistDraft } from "@/lib/checklist-draft";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { useIsAdmin } from "@/lib/use-admin";
-import { historyFor, isTerreno, resolveGestor, terrenoManager } from "@/lib/assignments";
+import { historyFor, isTerreno, resolveGestor, terrenoConflict, terrenoManager } from "@/lib/assignments";
 import type { PlateCandidate } from "@/lib/plate-search";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -172,6 +172,10 @@ function Checklists() {
   async function save() {
     if (!form.plate?.trim()) { toast.error("Informe a placa"); return; }
     if ((form.funcionario ?? "").trim() && !(form.gestor ?? "").trim()) { toast.error("Informe o gestor desse funcionário"); return; }
+    if (terrenoConflict(form.obra, gestorInfo.kind === "manager" || gestorInfo.kind === "employee" ? gestorInfo.manager.id : gestorInfo.kind === "new" ? "new" : null, f.managers)) {
+      toast.error("A obra \"Terreno\" é só do Maicon Dias (é a garagem). Se o carro está com outro gestor, ele está saindo do terreno: informe a obra para onde ele vai.");
+      return;
+    }
     setBusy("save");
     try {
       const items = reviewedItems(form.items);

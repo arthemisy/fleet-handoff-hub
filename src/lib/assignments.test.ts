@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeSince, expenseOwners, isTerreno, terrenoManager, resolveGestor, returnedVehicles, type Assignment } from "./assignments";
+import { activeSince, expenseOwners, isTerreno, terrenoConflict, terrenoManager, resolveGestor, returnedVehicles, type Assignment } from "./assignments";
 
 const mgr = (id: string, name: string) => ({ id, name, created_at: "" });
 const rafael = mgr("r", "Rafael Pupulim");
@@ -50,5 +50,13 @@ describe("team rules", () => {
   it("obra Terreno means the car is with Maicon", async () => {
     expect(isTerreno(" Terreno ")).toBe(true);
     expect(terrenoManager([rafael, maicon])).toBe(maicon);
+  });
+  it("Rafael Pupulin with a typo goes to the existing Rafael Pupulim folder", () => {
+    expect(resolveGestor("Rafael Pupulin", [rafael, maicon, mgr("e", "Emerson – Comercial EletroMW")], [], [])).toMatchObject({ kind: "manager", manager: rafael });
+  });
+  it("obra Terreno is only for Maicon", () => {
+    expect(terrenoConflict("Terreno", "r", [rafael, maicon])).toBe(true);
+    expect(terrenoConflict("Terreno", "m", [rafael, maicon])).toBe(false);
+    expect(terrenoConflict("Joinville", "r", [rafael, maicon])).toBe(false);
   });
 });
