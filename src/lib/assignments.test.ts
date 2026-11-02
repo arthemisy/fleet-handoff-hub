@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeSince, expenseOwners, resolveGestor, returnedVehicles, type Assignment } from "./assignments";
+import { activeSince, expenseOwners, isTerreno, terrenoManager, resolveGestor, returnedVehicles, type Assignment } from "./assignments";
 
 const mgr = (id: string, name: string) => ({ id, name, created_at: "" });
 const rafael = mgr("r", "Rafael Pupulim");
@@ -48,7 +48,6 @@ describe("team rules", () => {
     expect(resolveGestor("rafael pupulin", [rafael, maicon], [], [])).toMatchObject({ kind: "manager", manager: rafael });
   });
   it("obra Terreno means the car is with Maicon", async () => {
-    const { isTerreno, terrenoManager } = await import("./assignments");
     expect(isTerreno(" Terreno ")).toBe(true);
     expect(terrenoManager([rafael, maicon])).toBe(maicon);
   });
