@@ -96,3 +96,7 @@ export function resolveGestor(name: string, managers: Manager[], vehicles: Vehic
   if (hit && boss) return { kind: "employee", manager: boss, employee: hit.name };
   return { kind: "new", name: name.trim() };
 }
+
+/** "Terreno" is the yard where cars wait for a new gestor: a car sent there is with Maicon. */
+export const isTerreno = (obra?: string | null) => normName(obra) === "terreno";
+export const terrenoManager = (managers: Manager[]) => managers.find((x) => normName(x.name).startsWith("maicon"));
