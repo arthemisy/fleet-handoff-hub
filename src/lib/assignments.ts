@@ -80,6 +80,11 @@ export function resolveGestor(name: string, managers: Manager[], vehicles: Vehic
   if (!n) return { kind: "empty" };
   const m = managers.find((x) => normName(x.name) === n);
   if (m) return { kind: "manager", manager: m };
+  // small typos in the full name ("Rafael Pupulin" = Rafael Pupulim)
+  if (n.length >= 6) {
+    const close = managers.filter((x) => lev(normName(x.name), n) <= 2);
+    if (close.length === 1) return { kind: "manager", manager: close[0]! };
+  }
   // only the first name ("Maicon" = Maicon Dias), when it points to a single gestor
   const byFirst = managers.filter((x) => normName(x.name).split(" ")[0] === n.split(" ")[0]);
   if (!n.includes(" ") && byFirst.length === 1) return { kind: "manager", manager: byFirst[0]! };
@@ -100,3 +105,22 @@ export function resolveGestor(name: string, managers: Manager[], vehicles: Vehic
 /** "Terreno" is the yard where cars wait for a new gestor: a car sent there is with Maicon. */
 export const isTerreno = (obra?: string | null) => normName(obra) === "terreno";
 export const terrenoManager = (managers: Manager[]) => managers.find((x) => normName(x.name).startsWith("maicon"));
+
+/** "Terreno" belongs only to Maicon: another gestor with obra Terreno is a mistake (the car is leaving the yard). */
+export function terrenoConflict(obra: string | null | undefined, gestorId: string | null | undefined, managers: Manager[]) {
+  if (!isTerreno(obra) || !gestorId) return false;
+  return terrenoManager(managers)?.id !== gestorId;
+}
+
+function lev(a: string, b: string) {
+  const d = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]!; d[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const t = d[j]!;
+      d[j] = Math.min(d[j]! + 1, d[j - 1]! + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = t;
+    }
+  }
+  return d[b.length]!;
+}
