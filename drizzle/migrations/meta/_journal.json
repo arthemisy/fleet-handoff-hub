@@ -43,6 +43,20 @@
       "when": 1793656520290,
       "tag": "0005_account_approvals",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793667331918,
+      "tag": "0006_sync_vehicle_from_checklist",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793667353685,
+      "tag": "0007_sync_vehicle_assignment_on_change",
+      "breakpoints": true
     }
   ]
 }

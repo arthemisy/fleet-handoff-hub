@@ -72,7 +72,6 @@ function Checklists() {
   const [shots, setShots] = useState<Shot[]>([]);
   const [form, setForm] = useState<ChecklistDraft>(freshChecklist);
   const [busy, setBusy] = useState<"" | "read" | "save">("");
-  const [updateVehicle, setUpdateVehicle] = useState(true);
   const [filter, setFilter] = useState("");
   const isAdmin = useIsAdmin();
 
@@ -155,18 +154,12 @@ function Checklists() {
       const { error } = await supabase.from("vehicles").insert({ plate, model: form.model || "", manager_id: managerId, encarregado: employee, obra: form.obra || null, km: form.km, status: "Ativo" });
       if (error) throw error;
       await supabase.from("vehicle_assignments").insert({ plate, manager_id: managerId, employee, start_date: date, checklist_id: checklistId });
-      return;
     }
-    if (match.manager_id !== managerId) {
-      if (!historyFor(match.plate, f.assignments).length && match.manager_id) {
-        // remember who had it before, so their earlier expenses stay with them
-        await supabase.from("vehicle_assignments").insert({ plate: match.plate, manager_id: match.manager_id, start_date: null });
-      }
-      const { error } = await supabase.from("vehicle_assignments").insert({ plate: match.plate, manager_id: managerId, employee, start_date: date, checklist_id: checklistId });
+    // The database moves the car (gestor, funcionário, obra, KM) and records the custody change from this checklist.
+    if (checklistId) {
+      const { error } = await supabase.from("checklists").update({ manager_id: managerId, employee }).eq("id", checklistId);
       if (error) throw error;
     }
-    const { error } = await supabase.from("vehicles").update({ manager_id: managerId, status: "Ativo", encarregado: employee ?? (match.manager_id === managerId ? match.encarregado : null) }).eq("id", match.id);
-    if (error) throw error;
   }
 
   async function save() {
@@ -198,12 +191,6 @@ function Checklists() {
       }).select("id").single();
       if (error) throw error;
       await handover(saved.id);
-      if (updateVehicle && match) {
-        const upd: { km?: number; obra?: string } = {};
-        if (form.km) upd.km = form.km;
-        if (form.obra) upd.obra = form.obra;
-        if (Object.keys(upd).length) await supabase.from("vehicles").update(upd).eq("id", match.id);
-      }
       toast.success("Checklist salvo");
       setForm(freshChecklist()); setText(""); setShots([]);
     } catch (e) {
@@ -292,7 +279,6 @@ function Checklists() {
           <h2 className="font-display font-extrabold text-primary">ITENS DA CONFERÊNCIA</h2>
           <ChecklistItemsEditor items={form.items} onChange={(items) => setForm({ ...form, items })} />
           <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-          {match && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={updateVehicle} onChange={(e) => setUpdateVehicle(e.target.checked)} />Atualizar KM e obra do veículo na tabela</label>}
         </section>
       )}
 
