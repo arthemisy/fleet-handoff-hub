@@ -72,7 +72,6 @@ function Checklists() {
   const [shots, setShots] = useState<Shot[]>([]);
   const [form, setForm] = useState<ChecklistDraft>(freshChecklist);
   const [busy, setBusy] = useState<"" | "read" | "save">("");
-  const [updateVehicle, setUpdateVehicle] = useState(true);
   const [filter, setFilter] = useState("");
   const isAdmin = useIsAdmin();
 
@@ -280,7 +279,6 @@ function Checklists() {
           <h2 className="font-display font-extrabold text-primary">ITENS DA CONFERÊNCIA</h2>
           <ChecklistItemsEditor items={form.items} onChange={(items) => setForm({ ...form, items })} />
           <div className="space-y-1"><Label>Observações</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-          {match && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={updateVehicle} onChange={(e) => setUpdateVehicle(e.target.checked)} />Atualizar KM e obra do veículo na tabela</label>}
         </section>
       )}
 

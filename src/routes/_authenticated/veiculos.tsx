@@ -37,7 +37,7 @@ function Veiculos() {
             <div className="min-w-0 flex-1">
               <p className="font-display font-extrabold tracking-wide">{v.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{v.model}</span></p>
               <p className="truncate text-xs text-muted-foreground">
-                {v.manager_id ? <Link to="/gestor/$id" params={{ id: v.manager_id }} className="text-primary">{name(v.manager_id)}</Link> : "Sem gestor"} · {v.obra ?? "sem obra"} · {v.status}
+                {v.manager_id ? <Link to="/gestor/$id" params={{ id: v.manager_id }} className="text-primary">{name(v.manager_id)}</Link> : "Sem gestor"}{v.encarregado ? ` · com ${v.encarregado}` : ""} · {v.obra ?? "sem obra"} · {v.status}
               </p>
             </div>
             <span className="font-bold text-primary">{brl(total)}</span>
