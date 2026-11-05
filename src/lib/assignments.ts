@@ -47,14 +47,17 @@ export function expenseOwners(vehicles: Vehicle[], expenses: Expense[], assignme
 
 /** Cars a gestor gave back: held by them at some point, now with someone else. */
 export function returnedVehicles(m: Manager, vehicles: Vehicle[], assignments: Assignment[]) {
-  const res: { vehicle: Vehicle; returnedOn: string | null }[] = [];
+  const res: { vehicle: Vehicle; returnedOn: string | null; heldFrom?: string | null }[] = [];
   for (const v of vehicles) {
     if (v.manager_id === m.id) continue;
     const hist = historyFor(v.plate, assignments);
     const i = hist.map((a) => a.manager_id).lastIndexOf(m.id);
     if (i < 0) continue;
     const next = hist.slice(i + 1).find((a) => a.manager_id !== m.id);
-    res.push({ vehicle: v, returnedOn: next?.start_date ?? null });
+    let j = i;
+    while (j > 0 && hist[j - 1]!.manager_id === m.id) j--;
+    const heldFrom = hist[j]!.start_date ?? null;
+    res.push(heldFrom ? { vehicle: v, returnedOn: next?.start_date ?? null, heldFrom } : { vehicle: v, returnedOn: next?.start_date ?? null });
   }
   return res;
 }
