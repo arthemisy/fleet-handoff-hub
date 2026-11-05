@@ -105,8 +105,9 @@ function Gestor() {
         <section>
           <h2 className="mb-3 font-display font-extrabold text-primary">VEÍCULOS DEVOLVIDOS</h2>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {returned.map(({ vehicle: v, returnedOn }) => {
+            {returned.map(({ vehicle: v, returnedOn, heldFrom }) => {
               const ve = expensesForVehicle(v, s.expenses);
+              const days = heldFrom && returnedOn ? Math.round((Date.parse(returnedOn) - Date.parse(heldFrom)) / 86400000) : null;
               return (
                 <div key={v.id} className="rounded-xl border bg-muted/40 p-4">
                   <div className="flex items-start justify-between">
@@ -116,7 +117,8 @@ function Gestor() {
                     </div>
                     <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">DEVOLVIDO{returnedOn ? ` EM ${br(returnedOn)}` : ""}</span>
                   </div>
-                  <p className="mt-2 text-sm">Agora com: <b>{f.managers.find((x) => x.id === v.manager_id)?.name ?? "—"}</b></p>
+                  {(heldFrom || returnedOn) && <p className="mt-2 text-sm">Utilizou {heldFrom ? `de ${br(heldFrom)} ` : ""}{returnedOn ? `a ${br(returnedOn)}` : ""}{days != null ? ` (${days} dias)` : ""}</p>}
+                  <p className="mt-1 text-sm">Agora com: <b>{f.managers.find((x) => x.id === v.manager_id)?.name ?? "—"}</b>{v.obra ? ` (${v.obra})` : ""}</p>
                   <p className="mt-2 border-t pt-2 text-sm font-bold text-primary">{brl(ve.reduce((a, e) => a + Number(e.amount), 0))} <span className="text-xs font-normal text-muted-foreground">· {ve.length} gastos enquanto esteve com {m.name.split(" ")[0]}</span></p>
                 </div>
               );
