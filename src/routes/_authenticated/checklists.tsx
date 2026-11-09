@@ -3,7 +3,8 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
-import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil, Car, ClipboardList, ImagePlus } from "lucide-react";
+import { Camera, ClipboardPaste, Sparkles, Trash2, CheckCircle2, XCircle, Save, ChevronDown, Pencil, Car, ClipboardList, ImagePlus, Send } from "lucide-react";
+import { checklistWhatsAppText, whatsappLink } from "@/lib/checklist-share";
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate, type Checklist, type ChecklistItem } from "@/lib/fleet";
 import { parseChecklist } from "@/lib/checklist-ai.functions";
@@ -417,6 +418,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
           {urls.length > 0 && <div className="flex flex-wrap gap-2">{urls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="Anexo" className="h-28 rounded-md border" /></a>)}</div>}
           {c.raw_text && <details><summary className="cursor-pointer text-xs text-muted-foreground">Mensagem original</summary><pre className="mt-2 whitespace-pre-wrap rounded-md bg-background/60 p-2 text-xs">{c.raw_text}</pre></details>}
           <div className="flex gap-2">
+            <a className={buttonVariants({ size: "sm" })} target="_blank" rel="noreferrer" href={whatsappLink(checklistWhatsAppText({ plate: c.plate, model: c.model, when: whenLabel(c), obra: c.obra, gestor: c.manager_name, employee: c.employee ?? c.responsible, km: c.km, items, notes: c.notes }))}><Send className="h-4 w-4" />WhatsApp</a>
             <Button variant="outline" size="sm" onClick={startEdit}><Pencil className="h-4 w-4" />Editar</Button>
             {isAdmin && <Button variant="ghost" size="sm" className="text-destructive" onClick={remove}><Trash2 className="h-4 w-4" />Excluir</Button>}
           </div>
