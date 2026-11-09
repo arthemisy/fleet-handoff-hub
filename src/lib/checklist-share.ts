@@ -8,7 +8,11 @@ type ShareInput = {
 export function checklistWhatsAppText(c: ShareInput): string {
   const bad = c.items.filter((i) => !i.ok);
   const lines = [
-    `🚗 *CHECKLIST · ${c.plate}*${c.model ? ` ${c.model}` : ""}`,
+    `🚗 *CHECKLIST*`,
+    ``,
+    `🔷 *PLACA: ${c.plate.toUpperCase()}* 🔷`,
+    ...(c.model ? [`${c.model}`] : []),
+    `━━━━━━━━━━━━━━`,
     `📅 ${c.when}`,
   ];
   if (c.obra) lines.push(`📍 Obra: ${c.obra}`);
