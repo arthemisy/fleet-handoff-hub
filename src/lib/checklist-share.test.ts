@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checklistWhatsAppText, LOGO_URL } from "./checklist-share";
+import { checklistWhatsAppText } from "./checklist-share";
 
 describe("checklistWhatsAppText", () => {
   it("lists only failed items", () => {
@@ -17,6 +17,7 @@ describe("checklistWhatsAppText", () => {
     expect(t).toContain("🔷 *PLACA: DTZ-3G96* 🔷");
     expect(t).toContain("Obra: Terreno");
     expect(t).not.toMatch(/📅|📍|👤|🛣️|📝|⚠️/);
-    expect(t.trimEnd().endsWith(LOGO_URL)).toBe(true);
+    expect(t).not.toContain("http");
+    expect(t).not.toContain("Controle de Frota");
   });
 });
