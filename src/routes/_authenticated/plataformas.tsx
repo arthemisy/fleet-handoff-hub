@@ -35,6 +35,7 @@ function Plataformas() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {data.map((p) => <PlatformCard key={p.id} p={p} onCatalog={() => setOpen(p)} />)}
       </div>
+      <PlatformHistoryFeed platforms={data} />
       {open && <Catalog p={open} onClose={() => setOpen(null)} />}
     </div>
   );
@@ -112,40 +113,66 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
               : <Button size="sm" variant="outline" onClick={() => save({ status: "manutencao" }, `Plataforma ${p.number} em manutenção`)}><Wrench className="h-4 w-4" />Manutenção</Button>}
           </div>
         )}
-        <PlatformHistory id={p.id} />
       </div>
     </div>
   );
 }
 
-function PlatformHistory({ id }: { id: string }) {
-  const [open, setOpen] = useState(false);
-  const { data = [] } = useQuery({
-    queryKey: ["platform_history", id],
-    enabled: open,
+function PlatformHistoryFeed({ platforms }: { platforms: Platform[] }) {
+  const [limit, setLimit] = useState(15);
+  const { data = [], isFetching } = useQuery({
+    queryKey: ["platform_history", limit],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
-      const { data, error } = await supabase.from("platform_history").select("id, changes, user_email, created_at").eq("platform_id", id).order("created_at", { ascending: false }).limit(20);
+      const { data, error } = await supabase
+        .from("platform_history")
+        .select("id, changes, user_email, created_at, platform_id")
+        .order("created_at", { ascending: false })
+        .limit(limit);
       if (error) throw error;
       return data;
     },
   });
+  const label = (id: string) => {
+    const p = platforms.find((x) => x.id === id);
+    return p ? { number: p.number, model: p.model } : { number: "?", model: "Plataforma removida" };
+  };
   return (
-    <div className="border-t pt-2">
-      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">
-        <History className="h-3.5 w-3.5" /> Histórico de mudanças {open ? "▲" : "▼"}
-      </button>
-      {open && (
-        <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
-          {data.length === 0 && <li className="text-xs text-muted-foreground">Nenhuma mudança registrada ainda.</li>}
-          {data.map((h) => (
-            <li key={h.id} className="rounded-md bg-muted px-2 py-1.5 text-xs">
-              <p className="font-semibold">{h.changes}</p>
-              <p className="text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · {h.user_email?.split("@")[0] ?? "sistema"}</p>
+    <section className="rounded-xl border bg-card shadow-sm">
+      <div className="flex items-center gap-2 border-b px-4 py-3">
+        <History className="h-4 w-4 text-brand-blue" />
+        <div>
+          <h2 className="font-display text-base font-extrabold text-brand-blue">HISTÓRICO DE MUDANÇAS</h2>
+          <p className="text-xs text-muted-foreground">O que mudou em cada plataforma, quando e quem mudou.</p>
+        </div>
+      </div>
+      <ul className="divide-y">
+        {data.length === 0 && (
+          <li className="px-4 py-4 text-sm text-muted-foreground">Nenhuma mudança registrada ainda.</li>
+        )}
+        {data.map((h) => {
+          const { number, model } = label(h.platform_id);
+          return (
+            <li key={h.id} className="flex items-start gap-3 px-4 py-2.5">
+              <span className="mt-0.5 shrink-0 rounded-md bg-primary px-2 py-0.5 font-display text-xs font-extrabold text-primary-foreground">{number}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{h.changes}</p>
+                <p className="text-xs text-muted-foreground">
+                  {model} · {new Date(h.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · {h.user_email?.split("@")[0] ?? "sistema"}
+                </p>
+              </div>
             </li>
-          ))}
-        </ul>
+          );
+        })}
+      </ul>
+      {data.length === limit && (
+        <div className="border-t p-3">
+          <Button size="sm" variant="outline" className="w-full" disabled={isFetching} onClick={() => setLimit((n) => n + 15)}>
+            Mostrar mais
+          </Button>
+        </div>
       )}
-    </div>
+    </section>
   );
 }
 
