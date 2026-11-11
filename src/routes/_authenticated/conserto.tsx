@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CheckCircle2, Wrench } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/conserto")({
 
 function Conserto() {
   const { data: f } = useSuspenseQuery(fleetQuery);
+  const qc = useQueryClient();
   const [plate, setPlate] = useState("");
   const [shop, setShop] = useState("");
   const [defects, setDefects] = useState("");
@@ -29,6 +30,14 @@ function Conserto() {
   const [busy, setBusy] = useState(false);
   const name = (id: string | null) => f.managers.find((m) => m.id === id)?.name ?? "Sem gestor";
   const list = f.vehicles.map((v) => ({ v, mech: inMechanic(v, f.checklists) })).filter((x) => x.mech);
+  const brDate = (d: string) => d.slice(0, 10).split("-").reverse().join("/");
+  // one line per car: the most recent return from repair
+  const byPlate = new Map<string, (typeof f.visits)[number]>();
+  for (const v of f.visits.filter((x) => x.end_date)) {
+    const k = normPlate(v.plate);
+    if (!byPlate.has(k) || v.end_date! > byPlate.get(k)!.end_date!) byPlate.set(k, v);
+  }
+  const done = [...byPlate.values()].sort((a, b) => b.end_date!.localeCompare(a.end_date!)).slice(0, 10);
 
   async function mark(id: string, state: "in" | "out", shopName: string | null, day: string | null = null, notes: string | null = null) {
     setBusy(true);
@@ -41,8 +50,13 @@ function Conserto() {
     if (state === "in" && !openV) await supabase.from("mechanic_visits").insert({ plate: v.plate, start_date: day ?? today(), shop: shopName });
     if (state === "out") {
       if (openV) await supabase.from("mechanic_visits").update({ end_date: day ?? today() }).eq("id", openV.id);
-      else { const since = mechanicSince(v, f.checklists); if (since) await supabase.from("mechanic_visits").insert({ plate: v.plate, start_date: since, end_date: day ?? today() }); }
+      else {
+        const since = mechanicSince(v, f.checklists);
+        const dup = f.visits.some((x) => normPlate(x.plate) === normPlate(v.plate) && x.end_date === (day ?? today()));
+        if (since && !dup) await supabase.from("mechanic_visits").insert({ plate: v.plate, start_date: since, end_date: day ?? today() });
+      }
     }
+    await qc.invalidateQueries({ queryKey: ["fleet"] });
     return true;
   }
   async function send() {
@@ -97,6 +111,20 @@ function Conserto() {
             </div>
           ))}
           {list.length === 0 && <p className="text-sm text-muted-foreground">Nenhum carro na mecânica.</p>}
+        </div>
+      </section>
+      <section>
+        <h2 className="mb-3 font-display font-extrabold text-primary">VOLTOU DO CONSERTO</h2>
+        <div className="rounded-xl border bg-card p-4">
+          {done.length === 0 && <p className="text-sm text-muted-foreground">Nenhum carro voltou do conserto ainda.</p>}
+          <ul className="divide-y">
+            {done.map((v) => (
+              <li key={v.id} className="flex items-baseline gap-x-3 py-2">
+                <span className="font-display font-extrabold tracking-wide">{v.plate}</span>
+                <span className="text-sm text-muted-foreground">voltou em {brDate(v.end_date!)}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     </div>

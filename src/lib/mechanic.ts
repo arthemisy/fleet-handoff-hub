@@ -20,6 +20,8 @@ type ChecklistLike = {
 };
 
 const RE = /mec[âa]nica|oficina/i;
+/** Message says the car LEFT the mechanic ("pegou da mecânica", "saiu da oficina", "consertado"...). */
+const LEFT_RE = /consertad|saiu da|retornou da|voltou da|pegou( [\wÀ-ÿ]+){0,3} da|retirou( [\wÀ-ÿ]+){0,3} da|liberad/i;
 const NAME_AFTER_RE = /mec[âa]nica[ \t]+([A-ZÀ-ÿ][\wÀ-ÿ]*)/i;
 const NAME_BEFORE_RE = /([A-ZÀ-ÿ][\wÀ-ÿ]*)[ \t]+mec[âa]nica/i;
 
@@ -68,11 +70,14 @@ function fromMessages(v: VehicleLike, checklists: ChecklistLike[]): { state: str
   const last = mine.find((c) => c.notes || c.raw_text);
   const at = last?.created_at ?? null;
   const date = last ? (last.checked_date ?? legacyDate(last.checked_at) ?? last.created_at?.slice(0, 10) ?? null) : null;
+  // the newest message wins: if it says the car left the mechanic, a stale "Mecânica ..." obra doesn't re-flag it
+  if (last) {
+    const text = [last.notes, last.raw_text, last.obra].filter(Boolean).join("\n");
+    if (LEFT_RE.test(text)) return { state: false, at, date };
+    if (RE.test(text)) return { state: shopName(text) ?? true, at, date };
+  }
   if (v.obra && RE.test(v.obra)) return { state: shopName(v.obra) ?? true, at, date };
-  if (!last) return { state: false, at, date };
-  const text = [last.notes, last.raw_text, last.obra].filter(Boolean).join("\n");
-  if (!RE.test(text) || /consertad|saiu da (mec|oficina)|retornou da/i.test(text)) return { state: false, at, date };
-  return { state: shopName(text) ?? true, at, date };
+  return { state: false, at, date };
 }
 
 /** Old checklists keep the date as typed ("15/10/26 11:40"). */
@@ -89,5 +94,5 @@ export const dayOf = (c: ChecklistLike) => c.checked_date ?? legacyDate(c.checke
 export function mentionsMechanic(c: ChecklistLike): boolean | null {
   if (!c.notes && !c.raw_text) return null;
   const text = [c.notes, c.raw_text, c.obra].filter(Boolean).join("\n");
-  return RE.test(text) && !/consertad|saiu da (mec|oficina)|retornou da/i.test(text);
+  return RE.test(text) && !LEFT_RE.test(text);
 }

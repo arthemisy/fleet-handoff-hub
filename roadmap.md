@@ -13,3 +13,5 @@
 - [x] Checklist: remove conference points that were never cited in any saved conference
 - [x] Checklist hands the car over: GESTOR + FUNCIONÁRIO fields, new gestor folder auto-created (unless the name is an existing employee), expenses split by checklist date, old folder shows DEVOLVIDO, new shows ATIVO DESDE
 - [x] Checklist: paste message / AI reading admin-only; team fills manually with photos; bigger text, no placeholder hints, date/time prefilled with now
+- [x] Conserto: car marked "Consertado" leaves the tab immediately; messages saying the car left the mechanic ("pegou da mecânica") no longer re-flag it
+- [x] Conserto: "Voltou do conserto" section below — last 10 fixed cars, one line each: plate + return date only, deduped per plate

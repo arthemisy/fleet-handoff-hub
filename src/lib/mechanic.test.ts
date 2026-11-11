@@ -24,6 +24,21 @@ describe("inMechanic", () => {
     expect(r).toBe(false);
   });
 
+  it("não marca quando a mensagem mais nova diz que o carro saiu da mecânica, mesmo com obra de mecânica", () => {
+    const r = inMechanic({ plate: "AUF-9E23", obra: "Mecânica Maurício" }, [
+      { plate: "AUF-9E23", checked_date: "2026-11-05", created_at: "2026-11-11T02:28:39Z", notes: "PEGOU DIRETO DA MECANICA E LEVOU PARA OBRA", raw_text: "NOME SILVESTRE" },
+      { plate: "AUF-9E23", checked_date: "2026-10-30", created_at: "2026-11-01T01:57:54Z", notes: "Carro na mecânica", obra: "Mecânica Maurício" },
+    ]);
+    expect(r).toBe(false);
+  });
+
+  it("mensagem de saída criada depois do 'consertado' não devolve o carro para o conserto", () => {
+    const r = inMechanic({ plate: "AUF-9E23", obra: "Mecânica Maurício", mechanic_manual: "out", mechanic_changed_at: "2026-11-11T02:25:55Z" }, [
+      { plate: "AUF-9E23", checked_date: "2026-11-05", created_at: "2026-11-11T02:28:39Z", notes: "PEGOU DIRETO DA MECANICA E LEVOU PARA OBRA" },
+    ]);
+    expect(r).toBe(false);
+  });
+
   it("ignores checklists of other plates", () => {
     const r = inMechanic(V, [
       { plate: "MEE-9656", checked_date: "2026-10-30", notes: "Vai para manutenção na Mecânica Maurício", raw_text: null, obra: null },
