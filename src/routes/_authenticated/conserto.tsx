@@ -10,6 +10,7 @@ import { MechanicTag } from "@/components/MechanicTag";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/_authenticated/conserto")({
   head: () => ({ meta: [{ title: "Conserto · Controle de Frota" }, { name: "description", content: "Carros que estão na mecânica no momento." }, { property: "og:title", content: "Conserto · Controle de Frota" }, { property: "og:description", content: "Carros da frota EletroMW em conserto." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -21,6 +22,7 @@ function Conserto() {
   const { data: f } = useSuspenseQuery(fleetQuery);
   const [plate, setPlate] = useState("");
   const [shop, setShop] = useState("");
+  const [defects, setDefects] = useState("");
   const today = () => new Date().toLocaleDateString("sv-SE");
   const [since, setSince] = useState(today());
   const [outDay, setOutDay] = useState(today());
@@ -28,9 +30,9 @@ function Conserto() {
   const name = (id: string | null) => f.managers.find((m) => m.id === id)?.name ?? "Sem gestor";
   const list = f.vehicles.map((v) => ({ v, mech: inMechanic(v, f.checklists) })).filter((x) => x.mech);
 
-  async function mark(id: string, state: "in" | "out", shopName: string | null, day: string | null = null) {
+  async function mark(id: string, state: "in" | "out", shopName: string | null, day: string | null = null, notes: string | null = null) {
     setBusy(true);
-    const { error } = await supabase.from("vehicles").update({ mechanic_manual: state, mechanic_shop: shopName, mechanic_changed_at: new Date().toISOString(), mechanic_since: day }).eq("id", id);
+    const { error } = await supabase.from("vehicles").update({ mechanic_manual: state, mechanic_shop: shopName, mechanic_changed_at: new Date().toISOString(), mechanic_since: day, mechanic_notes: state === "in" ? notes : null }).eq("id", id);
     setBusy(false);
     if (error) { toast.error(error.message); return false; }
     // keep the repair period so its bills are charged to the gestor who used the car before
@@ -46,7 +48,7 @@ function Conserto() {
   async function send() {
     const v = f.vehicles.find((x) => normPlate(x.plate) === normPlate(plate));
     if (!v) { toast.error("Placa não encontrada na frota"); return; }
-    if (await mark(v.id, "in", shop.trim() || null, since || today())) { toast.success(`${v.plate} enviado para o conserto`); setPlate(""); setShop(""); setSince(today()); }
+    if (await mark(v.id, "in", shop.trim() || null, since || today(), defects.trim() || null)) { toast.success(`${v.plate} enviado para o conserto`); setPlate(""); setShop(""); setDefects(""); setSince(today()); }
   }
 
   return (
@@ -62,6 +64,7 @@ function Conserto() {
           </label>
           <Button onClick={send} disabled={busy || !plate.trim()}><Wrench className="h-4 w-4" />Mandar para conserto</Button>
         </div>
+        <Textarea value={defects} onChange={(e) => setDefects(e.target.value)} placeholder="Defeitos do carro (opcional)" className="text-base" rows={2} aria-label="Defeitos do carro" />
       </section>
       <section>
         <h2 className="mb-3 font-display font-extrabold text-primary">NA MECÂNICA AGORA ({list.length})</h2>
@@ -71,6 +74,20 @@ function Conserto() {
               <p className="font-display text-lg font-extrabold tracking-wide">{v.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{v.model}</span></p>
               <p className="mt-2"><MechanicTag plate={v.plate} /></p>
               <p className="mt-2 text-sm text-muted-foreground">{name(v.manager_id)}{v.obra ? ` · ${v.obra}` : ""}</p>
+              <Textarea
+                key={`${v.id}-${v.mechanic_notes ?? ""}`}
+                defaultValue={v.mechanic_notes ?? ""}
+                placeholder="Defeitos do carro"
+                className="mt-3 text-base"
+                rows={2}
+                aria-label={`Defeitos do ${v.plate}`}
+                onBlur={async (e) => {
+                  const notes = e.target.value.trim() || null;
+                  if (notes === (v.mechanic_notes ?? null)) return;
+                  const { error } = await supabase.from("vehicles").update({ mechanic_notes: notes }).eq("id", v.id);
+                  if (error) toast.error(error.message); else toast.success("Defeitos salvos");
+                }}
+              />
               <label className="mt-3 flex items-center gap-2 text-sm">Saiu em
                 <Input type="date" value={outDay} onChange={(e) => setOutDay(e.target.value)} className="h-9 text-base" aria-label="Saiu da mecânica em" />
               </label>

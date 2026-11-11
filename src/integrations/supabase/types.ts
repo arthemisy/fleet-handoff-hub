@@ -262,6 +262,7 @@ export type Database = {
           manager_id: string | null
           mechanic_changed_at: string | null
           mechanic_manual: string | null
+          mechanic_notes: string | null
           mechanic_shop: string | null
           mechanic_since: string | null
           model: string
@@ -283,6 +284,7 @@ export type Database = {
           manager_id?: string | null
           mechanic_changed_at?: string | null
           mechanic_manual?: string | null
+          mechanic_notes?: string | null
           mechanic_shop?: string | null
           mechanic_since?: string | null
           model?: string
@@ -304,6 +306,7 @@ export type Database = {
           manager_id?: string | null
           mechanic_changed_at?: string | null
           mechanic_manual?: string | null
+          mechanic_notes?: string | null
           mechanic_shop?: string | null
           mechanic_since?: string | null
           model?: string
