@@ -194,6 +194,41 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_history: {
+        Row: {
+          changes: string
+          created_at: string
+          id: string
+          platform_id: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          changes: string
+          created_at?: string
+          id?: string
+          platform_id: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          changes?: string
+          created_at?: string
+          id?: string
+          platform_id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_history_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platforms: {
         Row: {
           base_height: string | null

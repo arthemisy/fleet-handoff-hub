@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, MapPin, Wrench, CheckCircle2, X, Pencil } from "lucide-react";
+import { BookOpen, MapPin, Wrench, CheckCircle2, X, Pencil, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CATALOG, platformImage, platformsQuery, type Platform } from "@/lib/platforms";
 import { fleetQuery } from "@/lib/fleet";
@@ -21,6 +21,7 @@ function Plataformas() {
   useEffect(() => {
     const ch = supabase.channel(`plat-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "platforms" }, () => qc.invalidateQueries({ queryKey: ["platforms"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "platform_history" }, () => qc.invalidateQueries({ queryKey: ["platform_history"] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
@@ -58,6 +59,7 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
     toast.success(msg);
     setEdit(false);
     qc.invalidateQueries({ queryKey: ["platforms"] });
+    qc.invalidateQueries({ queryKey: ["platform_history"] });
   }
   const field = "h-9 w-full rounded-md border bg-background px-2 text-sm";
   return (
@@ -110,7 +112,39 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
               : <Button size="sm" variant="outline" onClick={() => save({ status: "manutencao" }, `Plataforma ${p.number} em manutenção`)}><Wrench className="h-4 w-4" />Manutenção</Button>}
           </div>
         )}
+        <PlatformHistory id={p.id} />
       </div>
+    </div>
+  );
+}
+
+function PlatformHistory({ id }: { id: string }) {
+  const [open, setOpen] = useState(false);
+  const { data = [] } = useQuery({
+    queryKey: ["platform_history", id],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("platform_history").select("id, changes, user_email, created_at").eq("platform_id", id).order("created_at", { ascending: false }).limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+  return (
+    <div className="border-t pt-2">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">
+        <History className="h-3.5 w-3.5" /> Histórico de mudanças {open ? "▲" : "▼"}
+      </button>
+      {open && (
+        <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
+          {data.length === 0 && <li className="text-xs text-muted-foreground">Nenhuma mudança registrada ainda.</li>}
+          {data.map((h) => (
+            <li key={h.id} className="rounded-md bg-muted px-2 py-1.5 text-xs">
+              <p className="font-semibold">{h.changes}</p>
+              <p className="text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · {h.user_email?.split("@")[0] ?? "sistema"}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
