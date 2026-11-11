@@ -78,6 +78,13 @@
       "when": 1794362303941,
       "tag": "0010_vehicle_mechanic_since",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794362951232,
+      "tag": "0011_mechanic_visits",
+      "breakpoints": true
     }
   ]
 }

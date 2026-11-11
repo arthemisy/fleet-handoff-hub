@@ -83,4 +83,11 @@ function legacyDate(t?: string | null) {
   return `${y}-${m[2]!.padStart(2, "0")}-${m[1]!.padStart(2, "0")}`;
 }
 
-const dayOf = (c: ChecklistLike) => c.checked_date ?? legacyDate(c.checked_at) ?? c.created_at?.slice(0, 10) ?? "";
+export const dayOf = (c: ChecklistLike) => c.checked_date ?? legacyDate(c.checked_at) ?? c.created_at?.slice(0, 10) ?? "";
+
+/** Whether one checklist message says the car is at the mechanic (null when it has no message). */
+export function mentionsMechanic(c: ChecklistLike): boolean | null {
+  if (!c.notes && !c.raw_text) return null;
+  const text = [c.notes, c.raw_text, c.obra].filter(Boolean).join("\n");
+  return RE.test(text) && !/consertad|saiu da (mec|oficina)|retornou da/i.test(text);
+}

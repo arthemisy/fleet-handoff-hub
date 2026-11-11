@@ -167,6 +167,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mechanic_visits: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          plate: string
+          shop: string | null
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          plate: string
+          shop?: string | null
+          start_date: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          plate?: string
+          shop?: string | null
+          start_date?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

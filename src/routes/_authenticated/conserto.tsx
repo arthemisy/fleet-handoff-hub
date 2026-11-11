@@ -5,7 +5,7 @@ import { CheckCircle2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate } from "@/lib/fleet";
-import { inMechanic } from "@/lib/mechanic";
+import { inMechanic, mechanicSince } from "@/lib/mechanic";
 import { MechanicTag } from "@/components/MechanicTag";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ function Conserto() {
   const [shop, setShop] = useState("");
   const today = () => new Date().toLocaleDateString("sv-SE");
   const [since, setSince] = useState(today());
+  const [outDay, setOutDay] = useState(today());
   const [busy, setBusy] = useState(false);
   const name = (id: string | null) => f.managers.find((m) => m.id === id)?.name ?? "Sem gestor";
   const list = f.vehicles.map((v) => ({ v, mech: inMechanic(v, f.checklists) })).filter((x) => x.mech);
@@ -32,6 +33,14 @@ function Conserto() {
     const { error } = await supabase.from("vehicles").update({ mechanic_manual: state, mechanic_shop: shopName, mechanic_changed_at: new Date().toISOString(), mechanic_since: day }).eq("id", id);
     setBusy(false);
     if (error) { toast.error(error.message); return false; }
+    // keep the repair period so its bills are charged to the gestor who used the car before
+    const v = f.vehicles.find((x) => x.id === id)!;
+    const openV = f.visits.find((x) => normPlate(x.plate) === normPlate(v.plate) && !x.end_date);
+    if (state === "in" && !openV) await supabase.from("mechanic_visits").insert({ plate: v.plate, start_date: day ?? today(), shop: shopName });
+    if (state === "out") {
+      if (openV) await supabase.from("mechanic_visits").update({ end_date: day ?? today() }).eq("id", openV.id);
+      else { const since = mechanicSince(v, f.checklists); if (since) await supabase.from("mechanic_visits").insert({ plate: v.plate, start_date: since, end_date: day ?? today() }); }
+    }
     return true;
   }
   async function send() {
@@ -62,7 +71,10 @@ function Conserto() {
               <p className="font-display text-lg font-extrabold tracking-wide">{v.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{v.model}</span></p>
               <p className="mt-2"><MechanicTag plate={v.plate} /></p>
               <p className="mt-2 text-sm text-muted-foreground">{name(v.manager_id)}{v.obra ? ` · ${v.obra}` : ""}</p>
-              <Button className="mt-3 w-full" variant="outline" disabled={busy} onClick={async () => { if (await mark(v.id, "out", null)) toast.success(`${v.plate} consertado`); }}>
+              <label className="mt-3 flex items-center gap-2 text-sm">Saiu em
+                <Input type="date" value={outDay} onChange={(e) => setOutDay(e.target.value)} className="h-9 text-base" aria-label="Saiu da mecânica em" />
+              </label>
+              <Button className="mt-2 w-full" variant="outline" disabled={busy} onClick={async () => { if (await mark(v.id, "out", null, outDay || today())) toast.success(`${v.plate} consertado`); }}>
                 <CheckCircle2 className="h-4 w-4 text-success" />Consertado
               </Button>
             </div>

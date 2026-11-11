@@ -150,7 +150,7 @@ function Gestor() {
           {exp.map((e) => (
             <div key={e.id} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
-                <p className="truncate font-medium">{e.description} <span className="text-muted-foreground">· {e.plate}</span></p>
+                <p className="truncate font-medium">{e.description} <span className="text-muted-foreground">· {e.plate}</span>{f.repairBilled.has(e.id) && <span className="ml-1 rounded bg-brand-yellow/40 px-1.5 text-[10px] font-bold">CONSERTO APÓS USO</span>}</p>
                 <p className="truncate text-xs text-muted-foreground">{e.expense_date?.split("-").reverse().join("/")} · {e.provider}</p>
               </div>
               <span className="shrink-0 font-bold">{brl(Number(e.amount))}</span>

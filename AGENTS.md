@@ -17,3 +17,4 @@
 - Installable on phones via manifest only (no service worker / offline).
 - Manual conference points live in a shared template and item editor; unreviewed results stay null in the draft and must be explicitly reviewed before saving so no default approval is recorded.
 - Car custody history lives in `vehicle_assignments` (plate, manager, employee, start_date); expenses are attributed to whoever held the car on the expense date (`src/lib/assignments.ts`), falling back to the car's current gestor when it has no history.
+- Repair bills: an expense dated within a repair period (±1 day; periods from mechanic_visits plus checklist messages) is charged to the last non-owner gestor who held the car before the repair (`src/lib/repairs.ts`), because damage comes from their use.
