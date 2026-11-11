@@ -29,6 +29,15 @@ function Gestor() {
   if (!m) return <p>Pasta não encontrada. <Link to="/painel" className="text-primary">Voltar</Link></p>;
   const s = managerStats(m, f);
   const owner = normName(m.name).startsWith("maicon");
+  /** With the owner (Maicon) a car is "at home": only say where it was last, under which gestor. */
+  const prevText = (v: (typeof f.vehicles)[number]) => {
+    const hist = historyFor(v.plate, f.assignments);
+    const prev = [...hist].reverse().find((a) => a.manager_id && a.manager_id !== m.id);
+    const gestor = prev && f.managers.find((x) => x.id === prev.manager_id)?.name;
+    const place = v.local && !/terreno/i.test(v.local) ? v.local : null;
+    if (!gestor && !place && !v.projeto) return null;
+    return `Estava anteriormente${gestor ? ` com o gestor ${gestor}` : ""}${place ? `, em ${place}` : ""}${v.projeto ? `, do projeto ${v.projeto}` : ""}.`.replace("anteriormente,", "anteriormente");
+  };
   const returned = returnedVehicles(m, f.vehicles, f.assignments);
   const warns = plateWarnings(f.vehicles, f.expenses, f.managers);
   const exp = [...s.expenses].sort((a, b) => (b.expense_date ?? "").localeCompare(a.expense_date ?? ""));
@@ -88,8 +97,9 @@ function Gestor() {
                   </div>
                 </div>
                 <MechanicTag plate={v.plate} className="mt-2" />
+                {owner && prevText(v) && <p className="mt-3 rounded-md bg-muted px-2 py-1.5 text-xs">{prevText(v)}</p>}
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                  {[["Obra", v.obra], ["Projeto", v.projeto], ["Local", v.local], ["Encarregado", v.encarregado], ["Motorista", v.motorista], ["KM", v.km?.toLocaleString("pt-BR")]].filter(([, x]) => x).map(([k, x]) => (
+                  {(owner ? [["KM", v.km?.toLocaleString("pt-BR")]] : [["Obra", v.obra], ["Projeto", v.projeto], ["Local", v.local], ["Encarregado", v.encarregado], ["Motorista", v.motorista], ["KM", v.km?.toLocaleString("pt-BR")]]).filter(([, x]) => x).map(([k, x]) => (
                     <div key={k as string}><dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{x}</dd></div>
                   ))}
                 </dl>
