@@ -2,15 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, MapPin, Wrench, CheckCircle2, X } from "lucide-react";
+import { BookOpen, MapPin, Wrench, CheckCircle2, X, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CATALOG, platformImage, platformsQuery, type Platform } from "@/lib/platforms";
-import { Input } from "@/components/ui/input";
+import { fleetQuery } from "@/lib/fleet";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/plataformas")({
   head: () => ({ meta: [{ title: "Plataformas · Controle de Frota" }, { name: "description", content: "Plataformas elevatórias da EletroMW: onde estão e catálogo de cada modelo." }, { property: "og:title", content: "Plataformas · Controle de Frota" }, { property: "og:description", content: "Plataformas elevatórias da EletroMW." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(platformsQuery),
+  loader: ({ context }) => Promise.all([context.queryClient.ensureQueryData(platformsQuery), context.queryClient.ensureQueryData(fleetQuery)]),
   component: Plataformas,
 });
 
@@ -39,42 +39,80 @@ function Plataformas() {
   );
 }
 
+const br = (d: string | null) => (d ? d.split("-").reverse().join("/") : "—");
+
 function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) {
   const qc = useQueryClient();
-  const [loc, setLoc] = useState(p.location ?? "");
-  useEffect(() => setLoc(p.location ?? ""), [p.location]);
+  const { data: f } = useSuspenseQuery(fleetQuery);
+  const [edit, setEdit] = useState(false);
+  const [form, setForm] = useState({ location: "", manager_id: "", loaned_at: "", returned_at: "" });
   const repair = p.status === "manutencao";
+  const gestor = f.managers.find((m) => m.id === p.manager_id)?.name ?? "—";
+  function openEdit() {
+    setForm({ location: p.location ?? "", manager_id: p.manager_id ?? "", loaned_at: p.loaned_at ?? "", returned_at: p.returned_at ?? "" });
+    setEdit(true);
+  }
   async function save(patch: Partial<Platform>, msg: string) {
     const { error } = await supabase.from("platforms").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", p.id);
     if (error) { toast.error(error.message); return; }
     toast.success(msg);
+    setEdit(false);
     qc.invalidateQueries({ queryKey: ["platforms"] });
   }
+  const field = "h-9 w-full rounded-md border bg-background px-2 text-sm";
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <div className="relative bg-muted">
-        <img src={platformImage(p)} alt={`Plataforma ${p.model}`} loading="lazy" width={1024} height={768} className="aspect-[4/3] w-full object-contain" />
-        <img src="/logo-eletromw.png" alt="EletroMW" className="absolute bottom-3 right-3 h-8 w-auto rounded-md bg-card px-2 py-1 shadow" />
-        <span className="absolute left-3 top-3 rounded-md bg-primary px-2 py-1 font-display text-lg font-extrabold text-primary-foreground">{p.number}</span>
-        <button onClick={onCatalog} aria-label={`Abrir catálogo da ${p.model}`} className="absolute right-3 top-3 flex items-center gap-1 rounded-full border bg-card px-3 py-1.5 text-xs font-bold text-primary shadow">
-          <BookOpen className="h-4 w-4" /> Catálogo
+        <img src={platformImage(p)} alt={`Plataforma ${p.model}`} loading="lazy" width={1024} height={768} className="aspect-[16/10] w-full object-contain" />
+        <img src="/logo-eletromw.png" alt="EletroMW" className="absolute bottom-2 right-2 h-7 w-auto rounded-md bg-card px-2 py-1 shadow" />
+        <span className="absolute left-2 top-2 rounded-md bg-primary px-2 py-0.5 font-display text-base font-extrabold text-primary-foreground">{p.number}</span>
+        <button onClick={onCatalog} aria-label={`Abrir catálogo da ${p.model}`} className="absolute right-2 top-2 flex items-center gap-1 rounded-full border bg-card px-2.5 py-1 text-xs font-bold text-primary shadow">
+          <BookOpen className="h-3.5 w-3.5" /> Catálogo
         </button>
       </div>
-      <div className="space-y-3 p-4">
-        <div>
-          <p className="font-display text-lg font-extrabold">{p.model}</p>
-          <p className="text-sm text-muted-foreground">Alcance {p.work_height} · {p.weight} · A nossa é {p.color?.toLowerCase()}</p>
+      <div className="space-y-2.5 p-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="font-display text-base font-extrabold">{p.model}</p>
+          <p className="shrink-0 text-xs text-muted-foreground">{p.work_height} · {p.color}</p>
         </div>
-        {repair
-          ? <span className="inline-flex items-center gap-1 rounded-md bg-brand-yellow px-2 py-1 text-xs font-bold text-foreground"><Wrench className="h-3.5 w-3.5" />EM MANUTENÇÃO</span>
-          : <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-bold text-accent-foreground"><MapPin className="h-3.5 w-3.5" />{p.location || "Sem local"}</span>}
-        <div className="flex gap-2">
-          <Input aria-label="Localização atual" value={loc} onChange={(e) => setLoc(e.target.value)} />
-          <Button variant="outline" disabled={loc.trim() === (p.location ?? "")} onClick={() => save({ location: loc.trim() || null }, `Plataforma ${p.number} agora em ${loc.trim()}`)}>Mover</Button>
+        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${repair ? "bg-brand-yellow text-foreground" : "bg-primary text-primary-foreground"}`}>
+          {repair ? <Wrench className="h-5 w-5 shrink-0" /> : <MapPin className="h-5 w-5 shrink-0" />}
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{repair ? "Em manutenção" : "Local atual"}</p>
+            <p className="truncate text-base font-extrabold">{p.location || "Sem local"}</p>
+          </div>
         </div>
-        {repair
-          ? <Button className="w-full" variant="outline" onClick={() => save({ status: "ok" }, `Plataforma ${p.number} consertada`)}><CheckCircle2 className="h-4 w-4" />Consertada</Button>
-          : <Button className="w-full" variant="outline" onClick={() => save({ status: "manutencao" }, `Plataforma ${p.number} em manutenção`)}><Wrench className="h-4 w-4" />Mandar para manutenção</Button>}
+        <dl className="grid grid-cols-3 divide-x rounded-lg border text-center">
+          <div className="p-1.5"><dt className="text-[10px] font-bold uppercase text-muted-foreground">Gestor</dt><dd className="truncate text-sm font-semibold">{gestor}</dd></div>
+          <div className="p-1.5"><dt className="text-[10px] font-bold uppercase text-muted-foreground">Emprestada</dt><dd className="text-sm font-semibold">{br(p.loaned_at)}</dd></div>
+          <div className="p-1.5"><dt className="text-[10px] font-bold uppercase text-muted-foreground">Devolvida</dt><dd className="text-sm font-semibold">{br(p.returned_at)}</dd></div>
+        </dl>
+        {edit ? (
+          <div className="space-y-2 rounded-lg border p-2">
+            <label className="block text-[11px] font-bold uppercase text-muted-foreground">Local<input className={field} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
+            <label className="block text-[11px] font-bold uppercase text-muted-foreground">Gestor
+              <select className={field} value={form.manager_id} onChange={(e) => setForm({ ...form, manager_id: e.target.value })}>
+                <option value="">—</option>
+                {f.managers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-[11px] font-bold uppercase text-muted-foreground">Emprestada em<input type="date" className={field} value={form.loaned_at} onChange={(e) => setForm({ ...form, loaned_at: e.target.value })} /></label>
+              <label className="block text-[11px] font-bold uppercase text-muted-foreground">Devolvida em<input type="date" className={field} value={form.returned_at} onChange={(e) => setForm({ ...form, returned_at: e.target.value })} /></label>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1" onClick={() => save({ location: form.location.trim() || null, manager_id: form.manager_id || null, loaned_at: form.loaned_at || null, returned_at: form.returned_at || null }, `Plataforma ${p.number} atualizada`)}>Salvar</Button>
+              <Button size="sm" variant="outline" onClick={() => setEdit(false)}>Cancelar</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="h-4 w-4" />Editar</Button>
+            {repair
+              ? <Button size="sm" variant="outline" onClick={() => save({ status: "ok" }, `Plataforma ${p.number} consertada`)}><CheckCircle2 className="h-4 w-4" />Consertada</Button>
+              : <Button size="sm" variant="outline" onClick={() => save({ status: "manutencao" }, `Plataforma ${p.number} em manutenção`)}><Wrench className="h-4 w-4" />Manutenção</Button>}
+          </div>
+        )}
       </div>
     </div>
   );

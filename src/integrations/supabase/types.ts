@@ -201,10 +201,13 @@ export type Database = {
           color: string | null
           created_at: string
           id: string
+          loaned_at: string | null
           location: string | null
+          manager_id: string | null
           model: string
           notes: string | null
           number: string
+          returned_at: string | null
           serial: string | null
           status: string
           stowed_size: string | null
@@ -218,10 +221,13 @@ export type Database = {
           color?: string | null
           created_at?: string
           id?: string
+          loaned_at?: string | null
           location?: string | null
+          manager_id?: string | null
           model: string
           notes?: string | null
           number: string
+          returned_at?: string | null
           serial?: string | null
           status?: string
           stowed_size?: string | null
@@ -235,10 +241,13 @@ export type Database = {
           color?: string | null
           created_at?: string
           id?: string
+          loaned_at?: string | null
           location?: string | null
+          manager_id?: string | null
           model?: string
           notes?: string | null
           number?: string
+          returned_at?: string | null
           serial?: string | null
           status?: string
           stowed_size?: string | null
@@ -246,7 +255,15 @@ export type Database = {
           weight?: string | null
           work_height?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "platforms_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "managers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

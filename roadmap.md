@@ -17,3 +17,4 @@
 - [x] Conserto: "Voltou do conserto" section below — last 10 fixed cars, one line each: plate + return date only, deduped per plate
 - [x] Plataformas: aba com as 8 plataformas, local, manutenção e catálogo ilustrado por modelo
 - [x] Plataformas: logo EletroMW sobre a imagem de cada máquina
+- [x] Plataformas: gestor, data de empréstimo e devolução; local em destaque; edição compacta

@@ -1,0 +1,1 @@
+ALTER TABLE public.platforms ADD COLUMN manager_id uuid REFERENCES public.managers(id) ON DELETE SET NULL, ADD COLUMN loaned_at date, ADD COLUMN returned_at date;

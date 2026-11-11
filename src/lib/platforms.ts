@@ -10,7 +10,8 @@ export type Platform = {
   id: string; number: string; model: string; catalog_key: string;
   base_height: string | null; work_height: string | null; stowed_size: string | null;
   weight: string | null; color: string | null; serial: string | null;
-  location: string | null; status: string; notes: string | null; updated_at: string;
+  location: string | null; status: string;
+  manager_id: string | null; loaned_at: string | null; returned_at: string | null; notes: string | null; updated_at: string;
 };
 
 export const platformsQuery = queryOptions({
