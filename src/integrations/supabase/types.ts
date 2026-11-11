@@ -233,6 +233,9 @@ export type Database = {
           linked_plates: string | null
           local: string | null
           manager_id: string | null
+          mechanic_changed_at: string | null
+          mechanic_manual: string | null
+          mechanic_shop: string | null
           model: string
           motorista: string | null
           obra: string | null
@@ -250,6 +253,9 @@ export type Database = {
           linked_plates?: string | null
           local?: string | null
           manager_id?: string | null
+          mechanic_changed_at?: string | null
+          mechanic_manual?: string | null
+          mechanic_shop?: string | null
           model?: string
           motorista?: string | null
           obra?: string | null
@@ -267,6 +273,9 @@ export type Database = {
           linked_plates?: string | null
           local?: string | null
           manager_id?: string | null
+          mechanic_changed_at?: string | null
+          mechanic_manual?: string | null
+          mechanic_shop?: string | null
           model?: string
           motorista?: string | null
           obra?: string | null

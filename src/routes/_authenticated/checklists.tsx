@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MechanicTag } from "@/components/MechanicTag";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, type ChangeEvent } from "react";
@@ -392,7 +393,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
     <div className="rounded-xl border bg-card">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 p-3 text-left">
         <div className="min-w-0 flex-1">
-          <p className="font-display font-extrabold tracking-wide">{c.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{c.model}</span></p>
+          <p className="font-display font-extrabold tracking-wide">{c.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{c.model}</span> <MechanicTag plate={c.plate} /></p>
           <p className="truncate text-xs text-muted-foreground">{whenLabel(c)} · {c.obra ?? "—"} · {[c.manager_name, c.employee].filter(Boolean).join(" · ") || c.responsible || "—"}</p>
         </div>
         <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-bold", items.length === 0 ? "bg-muted text-muted-foreground" : bad ? "bg-destructive/20 text-destructive" : "bg-success/20 text-success")}>{items.length === 0 ? "Sem pontos marcados" : bad ? `${bad} pendência${bad > 1 ? "s" : ""}` : `${items.length} ponto${items.length > 1 ? "s" : ""} OK`}</span>

@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedChecklistsRouteImport } from './routes/_authenticated/checklists'
+import { Route as AuthenticatedConsertoRouteImport } from './routes/_authenticated/conserto'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
@@ -43,6 +44,11 @@ const AuthenticatedChecklistsRoute = AuthenticatedChecklistsRouteImport.update({
   path: '/checklists',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConsertoRoute = AuthenticatedConsertoRouteImport.update({
+  id: '/conserto',
+  path: '/conserto',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
   id: '/importar',
   path: '/importar',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/checklists': typeof AuthenticatedChecklistsRoute
+  '/conserto': typeof AuthenticatedConsertoRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/checklists': typeof AuthenticatedChecklistsRoute
+  '/conserto': typeof AuthenticatedConsertoRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/checklists': typeof AuthenticatedChecklistsRoute
+  '/_authenticated/conserto': typeof AuthenticatedConsertoRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin'
     | '/checklists'
+    | '/conserto'
     | '/importar'
     | '/painel'
     | '/veiculos'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin'
     | '/checklists'
+    | '/conserto'
     | '/importar'
     | '/painel'
     | '/veiculos'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/admin'
     | '/_authenticated/checklists'
+    | '/_authenticated/conserto'
     | '/_authenticated/importar'
     | '/_authenticated/painel'
     | '/_authenticated/veiculos'
@@ -173,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChecklistsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/conserto': {
+      id: '/_authenticated/conserto'
+      path: '/conserto'
+      fullPath: '/conserto'
+      preLoaderRoute: typeof AuthenticatedConsertoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/importar': {
       id: '/_authenticated/importar'
       path: '/importar'
@@ -207,6 +226,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedChecklistsRoute: typeof AuthenticatedChecklistsRoute
+  AuthenticatedConsertoRoute: typeof AuthenticatedConsertoRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
@@ -216,6 +236,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedChecklistsRoute: AuthenticatedChecklistsRoute,
+  AuthenticatedConsertoRoute: AuthenticatedConsertoRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,

@@ -64,6 +64,13 @@
       "when": 1794361647340,
       "tag": "0008_backdated_checklist_history",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794362201015,
+      "tag": "0009_vehicle_mechanic_manual",
+      "breakpoints": true
     }
   ]
 }

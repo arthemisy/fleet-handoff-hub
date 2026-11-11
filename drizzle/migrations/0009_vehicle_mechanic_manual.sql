@@ -1,0 +1,1 @@
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS mechanic_manual text, ADD COLUMN IF NOT EXISTS mechanic_shop text, ADD COLUMN IF NOT EXISTS mechanic_changed_at timestamptz;

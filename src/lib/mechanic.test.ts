@@ -31,3 +31,17 @@ describe("inMechanic", () => {
     expect(r).toBe(false);
   });
 });
+
+import { inMechanic as im2 } from "./mechanic";
+describe("botões de conserto", () => {
+  const msg = [{ plate: "ABC1234", notes: "carro na mecânica", created_at: "2026-11-01T10:00:00Z" }];
+  it("marcar consertado depois da mensagem tira do conserto", () => {
+    expect(im2({ plate: "ABC1234", mechanic_manual: "out", mechanic_changed_at: "2026-11-02T10:00:00Z" }, msg)).toBe(false);
+  });
+  it("mandar para o conserto manualmente mostra o aviso", () => {
+    expect(im2({ plate: "ABC1234", mechanic_manual: "in", mechanic_changed_at: "2026-11-02T10:00:00Z" }, [])).toBe(true);
+  });
+  it("mensagem nova de mecânica vence um 'consertado' antigo", () => {
+    expect(im2({ plate: "ABC1234", mechanic_manual: "out", mechanic_changed_at: "2026-10-01T10:00:00Z" }, msg)).toBe(true);
+  });
+});
