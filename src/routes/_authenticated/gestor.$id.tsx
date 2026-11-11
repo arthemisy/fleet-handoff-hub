@@ -7,7 +7,7 @@ import { inMechanic } from "@/lib/mechanic";
 import { useIsAdmin } from "@/lib/use-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, expensesForVehicle, fleetQuery, managerStats } from "@/lib/fleet";
-import { activeSince, returnedVehicles } from "@/lib/assignments";
+import { activeSince, historyFor, normName, returnedVehicles } from "@/lib/assignments";
 
 const br = (d?: string | null) => (d ? d.split("-").reverse().join("/") : "");
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ function Gestor() {
   const m = f.managers.find((x) => x.id === id);
   if (!m) return <p>Pasta não encontrada. <Link to="/painel" className="text-primary">Voltar</Link></p>;
   const s = managerStats(m, f);
+  const owner = normName(m.name).startsWith("maicon");
   const returned = returnedVehicles(m, f.vehicles, f.assignments);
   const warns = plateWarnings(f.vehicles, f.expenses, f.managers);
   const exp = [...s.expenses].sort((a, b) => (b.expense_date ?? "").localeCompare(a.expense_date ?? ""));
@@ -70,6 +71,9 @@ function Gestor() {
           {s.vehicles.map((v) => {
             const ve = expensesForVehicle(v, s.expenses);
             const since = activeSince(v, f.assignments);
+            const hist = historyFor(v.plate, f.assignments);
+            const lastMine = [...hist].reverse().find((a) => a.manager_id === m.id);
+            const received = owner && hist.length > 1 && lastMine?.start_date && hist.indexOf(lastMine) > 0 ? lastMine.start_date : null;
             const last = [...f.checklists].reverse().find((c) => c.plate.replace(/\W/g, "") === v.plate.replace(/\W/g, ""));
             const mech = inMechanic(v, f.checklists);
             return (
@@ -80,7 +84,7 @@ function Gestor() {
                     <p className="text-sm text-muted-foreground">{v.model}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${v.status === "Ativo" ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>{v.status === "Ativo" && since ? `ATIVO DESDE ${br(since)}` : v.status}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${v.status === "Ativo" ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>{v.status === "Ativo" && received ? `RECEBIDO EM ${br(received)}` : v.status === "Ativo" && since ? `ATIVO DESDE ${br(since)}` : v.status}</span>
                     <VehicleDialog vehicle={v} managers={f.managers} trigger={<Button variant="ghost" size="icon" aria-label="Editar"><Pencil className="h-4 w-4" /></Button>} />
                   </div>
                 </div>
@@ -110,7 +114,7 @@ function Gestor() {
 
       {returned.length > 0 && (
         <section>
-          <h2 className="mb-3 font-display font-extrabold text-primary">VEÍCULOS DEVOLVIDOS</h2>
+          <h2 className="mb-3 font-display font-extrabold text-primary">{owner ? "VEÍCULOS EMPRESTADOS" : "VEÍCULOS DEVOLVIDOS"}</h2>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {returned.map(({ vehicle: v, returnedOn, heldFrom }) => {
               const ve = expensesForVehicle(v, s.expenses);
@@ -122,14 +126,14 @@ function Gestor() {
                       <p className="font-display text-lg font-extrabold tracking-wide">{v.plate}</p>
                       <p className="text-sm text-muted-foreground">{v.model}</p>
                     </div>
-                    <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">DEVOLVIDO{returnedOn ? ` EM ${br(returnedOn)}` : ""}</span>
+                    <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">{owner ? "EMPRESTADO" : "DEVOLVIDO"}{returnedOn ? ` EM ${br(returnedOn)}` : ""}</span>
                   </div>
                   {(() => { const mech = inMechanic(v, f.checklists); return mech ? (
                     <p className="mt-2 flex items-center gap-1.5 rounded-md bg-brand-yellow/40 px-2 py-1 text-xs font-bold text-foreground">
                       <Wrench className="h-3.5 w-3.5 shrink-0" />NA MECÂNICA{typeof mech === "string" ? ` — ${mech}` : ""}
                     </p>
                   ) : null; })()}
-                  {(heldFrom || returnedOn) && <p className="mt-2 text-sm">Utilizou {heldFrom ? `de ${br(heldFrom)} ` : ""}{returnedOn ? `a ${br(returnedOn)}` : ""}{days != null ? ` (${days} dias)` : ""}</p>}
+                  {!owner && (heldFrom || returnedOn) && <p className="mt-2 text-sm">Utilizou {heldFrom ? `de ${br(heldFrom)} ` : ""}{returnedOn ? `a ${br(returnedOn)}` : ""}{days != null ? ` (${days} dias)` : ""}</p>}
                   <p className="mt-1 text-sm">Agora com: <b>{f.managers.find((x) => x.id === v.manager_id)?.name ?? "—"}</b>{v.obra ? ` (${v.obra})` : ""}</p>
                   <p className="mt-2 border-t pt-2 text-sm font-bold text-primary">{brl(ve.reduce((a, e) => a + Number(e.amount), 0))} <span className="text-xs font-normal text-muted-foreground">· {ve.length} gastos enquanto esteve com {m.name.split(" ")[0]}</span></p>
                 </div>

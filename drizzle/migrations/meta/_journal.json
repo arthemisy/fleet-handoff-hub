@@ -57,6 +57,13 @@
       "when": 1793667353685,
       "tag": "0007_sync_vehicle_assignment_on_change",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794361647340,
+      "tag": "0008_backdated_checklist_history",
+      "breakpoints": true
     }
   ]
 }
