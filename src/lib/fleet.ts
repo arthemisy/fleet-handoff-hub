@@ -42,9 +42,10 @@ export const fleetQuery = queryOptions({
       all<Assignment>("vehicle_assignments", "created_at"),
       all<Visit & { id: string; shop: string | null; created_at: string }>("mechanic_visits", "created_at"),
     ]);
-    const owners = expenseOwners(vehicles, expenses, assignments);
-    // repair bills go to the gestor who used the car before it broke (see repairs.ts)
+    // Maicon owns the fleet: expenses before any known custody (or of unregistered plates) are his
     const ownerId = managers.find((m) => m.name.toLowerCase().startsWith("maicon"))?.id ?? null;
+    const owners = expenseOwners(vehicles, expenses, assignments, ownerId);
+    // repair bills go to the gestor who used the car before it broke (see repairs.ts)
     const repairBilled = new Set<string>();
     for (const v of vehicles) {
       const eps = repairEpisodes(v.plate, visits, checklists);

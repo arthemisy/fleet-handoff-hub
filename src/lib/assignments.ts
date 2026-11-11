@@ -27,20 +27,20 @@ export function historyFor(plate: string, all: Assignment[]) {
  * Which gestor pays for each expense: the one holding the car on the expense date.
  * Cars with no history keep the old rule (the car's current gestor pays everything).
  */
-export function expenseOwners(vehicles: Vehicle[], expenses: Expense[], assignments: Assignment[]) {
+export function expenseOwners(vehicles: Vehicle[], expenses: Expense[], assignments: Assignment[], ownerId: string | null = null) {
   const byPlate = new Map<string, Vehicle>();
   vehicles.forEach((v) => platesOf(v).forEach((p) => byPlate.set(p, v)));
   const out = new Map<string, string | null>();
   for (const e of expenses) {
     const v = byPlate.get(norm(e.plate));
-    if (!v) continue;
+    if (!v) { if (ownerId) out.set(e.id, ownerId); continue; }
     const hist = historyFor(v.plate, assignments);
     if (!hist.length) { out.set(e.id, v.manager_id); continue; }
     const d = e.expense_date ?? "9999-12-31";
     const first = hist[0]!;
     let owner: string | null = first.start_date && d < first.start_date ? null : first.manager_id;
     for (const a of hist) if (!a.start_date || a.start_date <= d) owner = a.manager_id;
-    out.set(e.id, owner);
+    out.set(e.id, owner ?? ownerId);
   }
   return out;
 }

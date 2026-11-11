@@ -25,6 +25,12 @@ describe("car handover between gestores", () => {
     expect(activeSince(car, hist)).toBe("2026-10-20");
   });
 
+  it("expenses before the first custody record or of unknown plates go to Maicon", () => {
+    const o = expenseOwners([car], [exp("pre", "2026-01-05"), { id: "unk", plate: "RXT8A40", expense_date: "2026-02-01", amount: 5 } as never], [asg({ manager_id: "r", start_date: "2026-10-01" })], "m");
+    expect(o.get("pre")).toBe("m");
+    expect(o.get("unk")).toBe("m");
+  });
+
   it("cars with no history keep charging the current gestor", () => {
     expect(expenseOwners([car], [exp("x", "2020-01-01")], []).get("x")).toBe("m");
   });
