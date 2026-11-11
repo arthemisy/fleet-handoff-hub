@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fleetQuery, normPlate } from "@/lib/fleet";
 import { inMechanic } from "@/lib/mechanic";
+import { MechanicTag } from "@/components/MechanicTag";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +21,15 @@ function Conserto() {
   const { data: f } = useSuspenseQuery(fleetQuery);
   const [plate, setPlate] = useState("");
   const [shop, setShop] = useState("");
+  const today = () => new Date().toLocaleDateString("sv-SE");
+  const [since, setSince] = useState(today());
   const [busy, setBusy] = useState(false);
   const name = (id: string | null) => f.managers.find((m) => m.id === id)?.name ?? "Sem gestor";
   const list = f.vehicles.map((v) => ({ v, mech: inMechanic(v, f.checklists) })).filter((x) => x.mech);
 
-  async function mark(id: string, state: "in" | "out", shopName: string | null) {
+  async function mark(id: string, state: "in" | "out", shopName: string | null, day: string | null = null) {
     setBusy(true);
-    const { error } = await supabase.from("vehicles").update({ mechanic_manual: state, mechanic_shop: shopName, mechanic_changed_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("vehicles").update({ mechanic_manual: state, mechanic_shop: shopName, mechanic_changed_at: new Date().toISOString(), mechanic_since: day }).eq("id", id);
     setBusy(false);
     if (error) { toast.error(error.message); return false; }
     return true;
@@ -34,7 +37,7 @@ function Conserto() {
   async function send() {
     const v = f.vehicles.find((x) => normPlate(x.plate) === normPlate(plate));
     if (!v) { toast.error("Placa não encontrada na frota"); return; }
-    if (await mark(v.id, "in", shop.trim() || null)) { toast.success(`${v.plate} enviado para o conserto`); setPlate(""); setShop(""); }
+    if (await mark(v.id, "in", shop.trim() || null, since || today())) { toast.success(`${v.plate} enviado para o conserto`); setPlate(""); setShop(""); setSince(today()); }
   }
 
   return (
@@ -42,19 +45,22 @@ function Conserto() {
       <h1 className="font-display text-2xl font-extrabold">Conserto</h1>
       <section className="space-y-3 rounded-xl border bg-card p-4">
         <h2 className="font-display font-extrabold text-primary">MANDAR PARA O CONSERTO</h2>
-        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
           <PlateAutocomplete value={plate} onChange={setPlate} onPick={(c) => setPlate(c.plate)} placeholder="Pesquisar placa" />
           <Input value={shop} onChange={(e) => setShop(e.target.value)} placeholder="Oficina (opcional)" className="text-base" />
+          <label className="flex items-center gap-2 text-sm font-medium">Desde
+            <Input type="date" value={since} onChange={(e) => setSince(e.target.value)} className="text-base" aria-label="Na mecânica desde" />
+          </label>
           <Button onClick={send} disabled={busy || !plate.trim()}><Wrench className="h-4 w-4" />Mandar para conserto</Button>
         </div>
       </section>
       <section>
         <h2 className="mb-3 font-display font-extrabold text-primary">NA MECÂNICA AGORA ({list.length})</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {list.map(({ v, mech }) => (
+          {list.map(({ v }) => (
             <div key={v.id} className="rounded-xl border bg-card p-4">
               <p className="font-display text-lg font-extrabold tracking-wide">{v.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{v.model}</span></p>
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-brand-yellow/40 px-2 py-1 text-xs font-bold"><Wrench className="h-3.5 w-3.5" />NA MECÂNICA{typeof mech === "string" ? ` — ${mech}` : ""}</p>
+              <p className="mt-2"><MechanicTag plate={v.plate} /></p>
               <p className="mt-2 text-sm text-muted-foreground">{name(v.manager_id)}{v.obra ? ` · ${v.obra}` : ""}</p>
               <Button className="mt-3 w-full" variant="outline" disabled={busy} onClick={async () => { if (await mark(v.id, "out", null)) toast.success(`${v.plate} consertado`); }}>
                 <CheckCircle2 className="h-4 w-4 text-success" />Consertado

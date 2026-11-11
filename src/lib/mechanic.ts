@@ -7,6 +7,7 @@ type VehicleLike = {
   mechanic_manual?: string | null;
   mechanic_shop?: string | null;
   mechanic_changed_at?: string | null;
+  mechanic_since?: string | null;
 };
 type ChecklistLike = {
   plate: string;
@@ -14,16 +15,17 @@ type ChecklistLike = {
   notes?: string | null;
   raw_text?: string | null;
   checked_date?: string | null;
+  checked_at?: string | null;
   created_at?: string | null;
 };
 
 const RE = /mec[âa]nica|oficina/i;
-const NAME_AFTER_RE = /mec[âa]nica\s+([A-ZÀ-ÿ][\wÀ-ÿ]*)/i;
-const NAME_BEFORE_RE = /([A-ZÀ-ÿ][\wÀ-ÿ]*)\s+mec[âa]nica/i;
+const NAME_AFTER_RE = /mec[âa]nica[ \t]+([A-ZÀ-ÿ][\wÀ-ÿ]*)/i;
+const NAME_BEFORE_RE = /([A-ZÀ-ÿ][\wÀ-ÿ]*)[ \t]+mec[âa]nica/i;
 
 /** Extracts the mechanic shop name ("Mecânica Maurício" or "Maurício Mecânica" → "Maurício"). */
 function shopName(text: string): string | null {
-  const stop = /^(na|no|da|do|de|a|o|em|para|pra|pela|pelo|e|com)$/i;
+  const stop = /^(na|no|da|do|de|a|o|em|para|pra|pela|pelo|e|com|data|local|km|hor[aá]rio)$/i;
   for (const re of [NAME_AFTER_RE, NAME_BEFORE_RE]) {
     const m = text.match(re)?.[1];
     if (m && !stop.test(m)) return m;
@@ -47,18 +49,38 @@ export function inMechanic(
   return auto.state;
 }
 
-function fromMessages(v: VehicleLike, checklists: ChecklistLike[]): { state: string | boolean; at: string | null } {
+/** Since when the car is at the mechanic (YYYY-MM-DD): the chosen date on the button, or the checklist's date. */
+export function mechanicSince(v: VehicleLike, checklists: ChecklistLike[]): string | null {
+  if (!inMechanic(v, checklists)) return null;
+  const auto = fromMessages(v, checklists);
+  if (v.mechanic_manual === "in" && v.mechanic_changed_at && (!auto.at || v.mechanic_changed_at >= auto.at))
+    return v.mechanic_since ?? v.mechanic_changed_at.slice(0, 10);
+  return auto.date;
+}
+
+function fromMessages(v: VehicleLike, checklists: ChecklistLike[]): { state: string | boolean; at: string | null; date: string | null } {
   const mine = checklists
     .filter((c) => normPlate(c.plate) === normPlate(v.plate))
     .sort((a, b) =>
-      (b.checked_date ?? b.created_at ?? "").localeCompare(a.checked_date ?? a.created_at ?? ""),
+      dayOf(b).localeCompare(dayOf(a)) || (b.created_at ?? "").localeCompare(a.created_at ?? ""),
     );
   // newest checklist with an actual message (notes/raw text) wins; obra alone doesn't clear the flag
   const last = mine.find((c) => c.notes || c.raw_text);
   const at = last?.created_at ?? null;
-  if (v.obra && RE.test(v.obra)) return { state: shopName(v.obra) ?? true, at };
-  if (!last) return { state: false, at };
+  const date = last ? (last.checked_date ?? legacyDate(last.checked_at) ?? last.created_at?.slice(0, 10) ?? null) : null;
+  if (v.obra && RE.test(v.obra)) return { state: shopName(v.obra) ?? true, at, date };
+  if (!last) return { state: false, at, date };
   const text = [last.notes, last.raw_text, last.obra].filter(Boolean).join("\n");
-  if (!RE.test(text) || /consertad|saiu da (mec|oficina)|retornou da/i.test(text)) return { state: false, at };
-  return { state: shopName(text) ?? true, at };
+  if (!RE.test(text) || /consertad|saiu da (mec|oficina)|retornou da/i.test(text)) return { state: false, at, date };
+  return { state: shopName(text) ?? true, at, date };
 }
+
+/** Old checklists keep the date as typed ("15/10/26 11:40"). */
+function legacyDate(t?: string | null) {
+  const m = t?.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (!m) return null;
+  const y = m[3]!.length === 2 ? `20${m[3]}` : m[3];
+  return `${y}-${m[2]!.padStart(2, "0")}-${m[1]!.padStart(2, "0")}`;
+}
+
+const dayOf = (c: ChecklistLike) => c.checked_date ?? legacyDate(c.checked_at) ?? c.created_at?.slice(0, 10) ?? "";

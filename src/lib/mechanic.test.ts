@@ -45,3 +45,17 @@ describe("botões de conserto", () => {
     expect(im2({ plate: "ABC1234", mechanic_manual: "out", mechanic_changed_at: "2026-10-01T10:00:00Z" }, msg)).toBe(true);
   });
 });
+
+import { mechanicSince } from "./mechanic";
+describe("na mecânica desde", () => {
+  it("usa a data escolhida ao mandar para o conserto", () => {
+    expect(mechanicSince({ plate: "ABC1234", mechanic_manual: "in", mechanic_since: "2026-11-03", mechanic_changed_at: "2026-11-10T10:00:00Z" }, [])).toBe("2026-11-03");
+  });
+  it("usa a data do checklist quando veio da mensagem", () => {
+    expect(mechanicSince({ plate: "ABC1234" }, [{ plate: "ABC1234", notes: "na mecânica", checked_date: "2026-11-05", created_at: "2026-11-06T10:00:00Z" }])).toBe("2026-11-05");
+  });
+});
+it("não confunde a linha seguinte com o nome da oficina", () => {
+  expect(inMechanic({ plate: "MMJ5763" }, [{ plate: "MMJ5763", raw_text: "LOCAL . MECÂNICA \nDATA. 15/10/26", checked_at: "15/10/26 11:40" }])).toBe(true);
+  expect(mechanicSince({ plate: "MMJ5763" }, [{ plate: "MMJ5763", raw_text: "LOCAL . MECÂNICA \nDATA. 15/10/26", checked_at: "15/10/26 11:40" }])).toBe("2026-10-15");
+});

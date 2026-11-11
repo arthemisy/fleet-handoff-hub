@@ -236,6 +236,7 @@ export type Database = {
           mechanic_changed_at: string | null
           mechanic_manual: string | null
           mechanic_shop: string | null
+          mechanic_since: string | null
           model: string
           motorista: string | null
           obra: string | null
@@ -256,6 +257,7 @@ export type Database = {
           mechanic_changed_at?: string | null
           mechanic_manual?: string | null
           mechanic_shop?: string | null
+          mechanic_since?: string | null
           model?: string
           motorista?: string | null
           obra?: string | null
@@ -276,6 +278,7 @@ export type Database = {
           mechanic_changed_at?: string | null
           mechanic_manual?: string | null
           mechanic_shop?: string | null
+          mechanic_since?: string | null
           model?: string
           motorista?: string | null
           obra?: string | null

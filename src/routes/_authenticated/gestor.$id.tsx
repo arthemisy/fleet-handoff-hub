@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Car, Wallet, FileText, AlertTriangle, Wrench } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Car, Wallet, FileText, AlertTriangle } from "lucide-react";
 import { plateWarnings } from "@/lib/plates";
-import { inMechanic } from "@/lib/mechanic";
+import { MechanicTag } from "@/components/MechanicTag";
 import { useIsAdmin } from "@/lib/use-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, expensesForVehicle, fleetQuery, managerStats } from "@/lib/fleet";
@@ -75,7 +75,6 @@ function Gestor() {
             const lastMine = [...hist].reverse().find((a) => a.manager_id === m.id);
             const received = owner && hist.length > 1 && lastMine?.start_date && hist.indexOf(lastMine) > 0 ? lastMine.start_date : null;
             const last = [...f.checklists].reverse().find((c) => c.plate.replace(/\W/g, "") === v.plate.replace(/\W/g, ""));
-            const mech = inMechanic(v, f.checklists);
             return (
               <div key={v.id} className="rounded-xl border bg-card p-4">
                 <div className="flex items-start justify-between">
@@ -88,11 +87,7 @@ function Gestor() {
                     <VehicleDialog vehicle={v} managers={f.managers} trigger={<Button variant="ghost" size="icon" aria-label="Editar"><Pencil className="h-4 w-4" /></Button>} />
                   </div>
                 </div>
-                {mech && (
-                  <p className="mt-2 flex items-center gap-1.5 rounded-md bg-brand-yellow/40 px-2 py-1 text-xs font-bold text-foreground">
-                    <Wrench className="h-3.5 w-3.5 shrink-0" />NA MECÂNICA{typeof mech === "string" ? ` — ${mech}` : ""}
-                  </p>
-                )}
+                <MechanicTag plate={v.plate} className="mt-2" />
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                   {[["Obra", v.obra], ["Projeto", v.projeto], ["Local", v.local], ["Encarregado", v.encarregado], ["Motorista", v.motorista], ["KM", v.km?.toLocaleString("pt-BR")]].filter(([, x]) => x).map(([k, x]) => (
                     <div key={k as string}><dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{x}</dd></div>
@@ -128,11 +123,7 @@ function Gestor() {
                     </div>
                     <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">{owner ? "EMPRESTADO" : "DEVOLVIDO"}{returnedOn ? ` EM ${br(returnedOn)}` : ""}</span>
                   </div>
-                  {(() => { const mech = inMechanic(v, f.checklists); return mech ? (
-                    <p className="mt-2 flex items-center gap-1.5 rounded-md bg-brand-yellow/40 px-2 py-1 text-xs font-bold text-foreground">
-                      <Wrench className="h-3.5 w-3.5 shrink-0" />NA MECÂNICA{typeof mech === "string" ? ` — ${mech}` : ""}
-                    </p>
-                  ) : null; })()}
+                  <MechanicTag plate={v.plate} className="mt-2" />
                   {!owner && (heldFrom || returnedOn) && <p className="mt-2 text-sm">Utilizou {heldFrom ? `de ${br(heldFrom)} ` : ""}{returnedOn ? `a ${br(returnedOn)}` : ""}{days != null ? ` (${days} dias)` : ""}</p>}
                   <p className="mt-1 text-sm">Agora com: <b>{f.managers.find((x) => x.id === v.manager_id)?.name ?? "—"}</b>{v.obra ? ` (${v.obra})` : ""}</p>
                   <p className="mt-2 border-t pt-2 text-sm font-bold text-primary">{brl(ve.reduce((a, e) => a + Number(e.amount), 0))} <span className="text-xs font-normal text-muted-foreground">· {ve.length} gastos enquanto esteve com {m.name.split(" ")[0]}</span></p>
