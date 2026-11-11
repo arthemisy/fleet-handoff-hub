@@ -71,10 +71,7 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
         </button>
       </div>
       <div className="space-y-2.5 p-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="font-display text-base font-extrabold">{p.model}</p>
-          <p className="shrink-0 text-xs text-muted-foreground">{p.work_height} · {p.color}</p>
-        </div>
+        <p className="font-display text-base font-extrabold">{p.model}</p>
         <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${repair ? "bg-brand-yellow text-foreground" : "bg-primary text-primary-foreground"}`}>
           {repair ? <Wrench className="h-5 w-5 shrink-0" /> : <MapPin className="h-5 w-5 shrink-0" />}
           <div className="min-w-0">
