@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { FolderOpen, Car, ClipboardCheck, Upload, LogOut, ShieldCheck, Wrench } from "lucide-react";
+import { FolderOpen, Car, ClipboardCheck, Upload, LogOut, ShieldCheck, Wrench, Forklift } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useApprovals } from "@/lib/approvals";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/_authenticated")({
 const NAV = [
   { to: "/painel", label: "Gestores", icon: FolderOpen },
   { to: "/veiculos", label: "Veículos", icon: Car },
+  { to: "/plataformas", label: "Plataformas", icon: Forklift },
   { to: "/checklists", label: "Checklists", icon: ClipboardCheck },
   { to: "/conserto", label: "Conserto", icon: Wrench },
   { to: "/importar", label: "Importar", icon: Upload },
@@ -104,7 +105,7 @@ function Team({ isAdmin, pending }: { isAdmin: boolean; pending: { user_id: stri
             <Logo />
             <button onClick={() => supabase.auth.signOut()} aria-label="Sair" className="text-muted-foreground"><LogOut className="h-5 w-5" /></button>
           </div>
-          <nav aria-label="Seções do app" className={`grid gap-1.5 ${isAdmin ? "grid-cols-6" : "grid-cols-5"} px-3 pb-3`}>
+          <nav aria-label="Seções do app" className={`grid gap-1.5 ${isAdmin ? "grid-cols-4" : "grid-cols-3"} px-3 pb-3`}>
             {nav.map((n) => {
               const active = isActive(n.to);
               return (

@@ -194,6 +194,60 @@ export type Database = {
         }
         Relationships: []
       }
+      platforms: {
+        Row: {
+          base_height: string | null
+          catalog_key: string
+          color: string | null
+          created_at: string
+          id: string
+          location: string | null
+          model: string
+          notes: string | null
+          number: string
+          serial: string | null
+          status: string
+          stowed_size: string | null
+          updated_at: string
+          weight: string | null
+          work_height: string | null
+        }
+        Insert: {
+          base_height?: string | null
+          catalog_key: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          model: string
+          notes?: string | null
+          number: string
+          serial?: string | null
+          status?: string
+          stowed_size?: string | null
+          updated_at?: string
+          weight?: string | null
+          work_height?: string | null
+        }
+        Update: {
+          base_height?: string | null
+          catalog_key?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          model?: string
+          notes?: string | null
+          number?: string
+          serial?: string | null
+          status?: string
+          stowed_size?: string | null
+          updated_at?: string
+          weight?: string | null
+          work_height?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

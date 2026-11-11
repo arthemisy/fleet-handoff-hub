@@ -15,3 +15,5 @@
 - [x] Checklist: paste message / AI reading admin-only; team fills manually with photos; bigger text, no placeholder hints, date/time prefilled with now
 - [x] Conserto: car marked "Consertado" leaves the tab immediately; messages saying the car left the mechanic ("pegou da mecânica") no longer re-flag it
 - [x] Conserto: "Voltou do conserto" section below — last 10 fixed cars, one line each: plate + return date only, deduped per plate
+- [x] Plataformas: aba com as 8 plataformas, local, manutenção e catálogo ilustrado por modelo
+- [x] Plataformas: logo EletroMW sobre a imagem de cada máquina

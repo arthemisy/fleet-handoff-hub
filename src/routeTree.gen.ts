@@ -17,6 +17,7 @@ import { Route as AuthenticatedChecklistsRouteImport } from './routes/_authentic
 import { Route as AuthenticatedConsertoRouteImport } from './routes/_authenticated/conserto'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedPlataformasRouteImport } from './routes/_authenticated/plataformas'
 import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
 import { Route as AuthenticatedGestorIdRouteImport } from './routes/_authenticated/gestor.$id'
 
@@ -59,6 +60,12 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPlataformasRoute =
+  AuthenticatedPlataformasRouteImport.update({
+    id: '/plataformas',
+    path: '/plataformas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedVeiculosRoute = AuthenticatedVeiculosRouteImport.update({
   id: '/veiculos',
   path: '/veiculos',
@@ -78,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/conserto': typeof AuthenticatedConsertoRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/plataformas': typeof AuthenticatedPlataformasRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
   '/gestor/$id': typeof AuthenticatedGestorIdRoute
 }
@@ -89,6 +97,7 @@ export interface FileRoutesByTo {
   '/conserto': typeof AuthenticatedConsertoRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/plataformas': typeof AuthenticatedPlataformasRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
   '/gestor/$id': typeof AuthenticatedGestorIdRoute
 }
@@ -102,6 +111,7 @@ export interface FileRoutesById {
   '/_authenticated/conserto': typeof AuthenticatedConsertoRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/_authenticated/plataformas': typeof AuthenticatedPlataformasRoute
   '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
   '/_authenticated/gestor/$id': typeof AuthenticatedGestorIdRoute
 }
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/conserto'
     | '/importar'
     | '/painel'
+    | '/plataformas'
     | '/veiculos'
     | '/gestor/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/conserto'
     | '/importar'
     | '/painel'
+    | '/plataformas'
     | '/veiculos'
     | '/gestor/$id'
   id:
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
     | '/_authenticated/conserto'
     | '/_authenticated/importar'
     | '/_authenticated/painel'
+    | '/_authenticated/plataformas'
     | '/_authenticated/veiculos'
     | '/_authenticated/gestor/$id'
   fileRoutesById: FileRoutesById
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/plataformas': {
+      id: '/_authenticated/plataformas'
+      path: '/plataformas'
+      fullPath: '/plataformas'
+      preLoaderRoute: typeof AuthenticatedPlataformasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/veiculos': {
       id: '/_authenticated/veiculos'
       path: '/veiculos'
@@ -229,6 +249,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConsertoRoute: typeof AuthenticatedConsertoRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+  AuthenticatedPlataformasRoute: typeof AuthenticatedPlataformasRoute
   AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
   AuthenticatedGestorIdRoute: typeof AuthenticatedGestorIdRoute
 }
@@ -239,6 +260,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConsertoRoute: AuthenticatedConsertoRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+  AuthenticatedPlataformasRoute: AuthenticatedPlataformasRoute,
   AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,
   AuthenticatedGestorIdRoute: AuthenticatedGestorIdRoute,
 }
