@@ -46,7 +46,7 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
   const repair = p.status === "manutencao";
   async function save(patch: Partial<Platform>, msg: string) {
     const { error } = await supabase.from("platforms").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", p.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success(msg);
     qc.invalidateQueries({ queryKey: ["platforms"] });
   }
