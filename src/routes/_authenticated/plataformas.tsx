@@ -74,8 +74,8 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
         <img src="/logo-eletromw.png" alt="EletroMW" className="pointer-events-none absolute bottom-2 right-2 h-7 w-auto rounded-md bg-card px-2 py-1 shadow" />
         <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-primary px-2 py-0.5 font-display text-base font-extrabold text-primary-foreground">{p.number}</span>
       </div>
-      <button type="button" onClick={onCatalog} className="flex w-full items-center justify-center gap-1 border-b py-1 text-[11px] text-muted-foreground hover:text-primary">
-        <Pointer className="h-3 w-3" /> Clique para ver o catálogo
+      <button type="button" onClick={onCatalog} className="flex w-full items-center justify-center gap-1.5 border-b bg-brand-yellow py-1.5 font-display text-xs font-extrabold uppercase tracking-wide text-foreground transition-colors hover:bg-brand-yellow/80">
+        <Pointer className="h-3.5 w-3.5" /> Clique para ver o catálogo
       </button>
       <div className="space-y-2.5 p-3">
         <p className="font-display text-base font-extrabold">{p.model}</p>
