@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { CATALOG, platformImage, platformsQuery, type Platform } from "@/lib/platforms";
 import { fleetQuery } from "@/lib/fleet";
 import { Button } from "@/components/ui/button";
-import { useAskFixed } from "@/components/AskFixedDialog";
 import { useAskShop } from "@/components/AskShopDialog";
 import { useAskFixed } from "@/components/AskFixedDialog";
 
