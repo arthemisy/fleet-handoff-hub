@@ -66,20 +66,22 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <div className="relative bg-muted">
-        <img src={platformImage(p)} alt={`Plataforma ${p.model}`} loading="lazy" width={1024} height={768} className="aspect-[16/10] w-full object-contain" />
-        <img src="/logo-eletromw.png" alt="EletroMW" className="absolute bottom-2 right-2 h-7 w-auto rounded-md bg-card px-2 py-1 shadow" />
-        <span className="absolute left-2 top-2 rounded-md bg-primary px-2 py-0.5 font-display text-base font-extrabold text-primary-foreground">{p.number}</span>
+        <button type="button" onClick={onCatalog} aria-label={`Abrir catálogo da ${p.model}`} className="block w-full cursor-pointer">
+          <img src={platformImage(p)} alt={`Plataforma ${p.model}`} loading="lazy" width={1024} height={768} className="aspect-[16/10] w-full object-contain" />
+        </button>
+        <img src="/logo-eletromw.png" alt="EletroMW" className="pointer-events-none absolute bottom-2 right-2 h-7 w-auto rounded-md bg-card px-2 py-1 shadow" />
+        <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-primary px-2 py-0.5 font-display text-base font-extrabold text-primary-foreground">{p.number}</span>
         <button onClick={onCatalog} aria-label={`Abrir catálogo da ${p.model}`} className="absolute right-2 top-2 flex items-center gap-1 rounded-full border bg-card px-2.5 py-1 text-xs font-bold text-primary shadow">
           <BookOpen className="h-3.5 w-3.5" /> Catálogo
         </button>
       </div>
       <div className="space-y-2.5 p-3">
         <p className="font-display text-base font-extrabold">{p.model}</p>
-        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${repair ? "bg-brand-yellow text-foreground" : "bg-primary text-primary-foreground"}`}>
+        <div className={`flex h-14 items-center gap-2 rounded-lg px-3 ${repair ? "bg-brand-yellow text-foreground" : "bg-primary text-primary-foreground"}`}>
           {repair ? <Wrench className="h-5 w-5 shrink-0" /> : <MapPin className="h-5 w-5 shrink-0" />}
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{repair ? "Em manutenção" : "Local atual"}</p>
-            <p className="truncate text-base font-extrabold">{p.location || "Sem local"}</p>
+            <p className="truncate text-2xl leading-tight font-extrabold">{p.location || "Sem local"}</p>
           </div>
         </div>
         <dl className="grid grid-cols-3 divide-x rounded-lg border text-center">
