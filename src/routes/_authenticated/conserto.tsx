@@ -8,6 +8,7 @@ import { fleetQuery, normPlate } from "@/lib/fleet";
 import { inMechanic, mechanicSince } from "@/lib/mechanic";
 import { MechanicTag } from "@/components/MechanicTag";
 import { PlateAutocomplete } from "@/components/PlateAutocomplete";
+import { useAskFixed } from "@/components/AskFixedDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,7 @@ function Conserto() {
   const [since, setSince] = useState(today());
   const [outDay, setOutDay] = useState(today());
   const [busy, setBusy] = useState(false);
+  const [askFixed, fixedDialog] = useAskFixed();
   const name = (id: string | null) => f.managers.find((m) => m.id === id)?.name ?? "Sem gestor";
   const list = f.vehicles.map((v) => ({ v, mech: inMechanic(v, f.checklists) })).filter((x) => x.mech);
   const brDate = (d: string) => d.slice(0, 10).split("-").reverse().join("/");
@@ -67,6 +69,7 @@ function Conserto() {
 
   return (
     <div className="space-y-5">
+      {fixedDialog}
       <h1 className="font-display text-2xl font-extrabold">Conserto</h1>
       <section className="space-y-3 rounded-xl border bg-card p-4">
         <h2 className="font-display font-extrabold text-primary">MANDAR PARA O CONSERTO</h2>
@@ -105,7 +108,7 @@ function Conserto() {
               <label className="mt-3 flex items-center gap-2 text-sm">Saiu em
                 <Input type="date" value={outDay} onChange={(e) => setOutDay(e.target.value)} className="h-9 text-base" aria-label="Saiu da mecânica em" />
               </label>
-              <Button className="mt-2 w-full" variant="outline" disabled={busy} onClick={async () => { if (await mark(v.id, "out", null, outDay || today())) toast.success(`${v.plate} consertado`); }}>
+              <Button className="mt-2 w-full" variant="outline" disabled={busy} onClick={async () => { if (!(await askFixed(`Carro ${v.plate}`))) return; if (await mark(v.id, "out", null, outDay || today())) toast.success(`${v.plate} consertado`); }}>
                 <CheckCircle2 className="h-4 w-4 text-success" />Consertado
               </Button>
             </div>
