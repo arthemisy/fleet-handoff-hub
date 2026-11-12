@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, MapPin, Wrench, CheckCircle2, X, Pencil, History } from "lucide-react";
+import { Pointer, MapPin, Wrench, CheckCircle2, X, Pencil, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CATALOG, platformImage, platformsQuery, type Platform } from "@/lib/platforms";
 import { fleetQuery } from "@/lib/fleet";
@@ -73,10 +73,10 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
         </button>
         <img src="/logo-eletromw.png" alt="EletroMW" className="pointer-events-none absolute bottom-2 right-2 h-7 w-auto rounded-md bg-card px-2 py-1 shadow" />
         <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-primary px-2 py-0.5 font-display text-base font-extrabold text-primary-foreground">{p.number}</span>
-        <button onClick={onCatalog} aria-label={`Abrir catálogo da ${p.model}`} className="absolute right-2 top-2 flex items-center gap-1 rounded-full border bg-card px-2.5 py-1 text-xs font-bold text-primary shadow">
-          <BookOpen className="h-3.5 w-3.5" /> Catálogo
-        </button>
       </div>
+      <button type="button" onClick={onCatalog} className="flex w-full items-center justify-center gap-1 border-b py-1 text-[11px] text-muted-foreground hover:text-primary">
+        <Pointer className="h-3 w-3" /> Clique para ver o catálogo
+      </button>
       <div className="space-y-2.5 p-3">
         <p className="font-display text-base font-extrabold">{p.model}</p>
         <div className={`flex h-14 items-center gap-2 rounded-lg px-3 ${repair ? "bg-brand-yellow text-foreground" : "bg-primary text-primary-foreground"}`}>
