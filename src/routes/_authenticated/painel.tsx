@@ -36,7 +36,7 @@ function Painel() {
   return (
     <div className="space-y-7">
       <div>
-        <h1 className="font-display text-2xl font-extrabold md:text-3xl"><span className="text-brand-blue">GESTÃO DE FROTA</span> <span className="text-brand-red">ELETROMW</span></h1>
+        <h1 className="whitespace-nowrap font-title text-[clamp(1.05rem,5.2vw,1.5rem)] font-bold tracking-tight md:text-3xl"><span className="text-brand-blue">GESTÃO DE FROTA</span> <span className="text-brand-red">ELETROMW</span></h1>
         <p className="text-sm text-muted-foreground">Gestores de obra, veículos, efetivos e gastos consolidados por placa.</p>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
