@@ -80,7 +80,7 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
         <div className={`flex h-14 items-center gap-2 rounded-lg px-3 ${repair ? "bg-brand-yellow text-foreground" : "bg-primary text-primary-foreground"}`}>
           {repair ? <Wrench className="h-5 w-5 shrink-0" /> : <MapPin className="h-5 w-5 shrink-0" />}
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{repair ? "Em manutenção" : "Local atual"}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{repair ? "Em manutenção" : "Localização"}</p>
             <p className="truncate text-2xl leading-tight font-extrabold">{p.location || "Sem local"}</p>
           </div>
         </div>
