@@ -19,11 +19,63 @@ type ChecklistLike = {
   created_at?: string | null;
 };
 
-const RE = /mec[âa]nica|oficina|em manuten[çc][ãa]o/i;
+/** Lowercase, no accents, no punctuation: "Manutenção", "manutencao" and "MANUTENÇÃO" become the same thing. */
+const flat = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ");
+
+/**
+ * Anything that says the vehicle is being repaired or is at the shop:
+ * mecânica, oficina, manutenção (also "manutensao"), conserto/concerto, reparo...
+ */
+const IN_RE =
+  /(mecanik|mecanic|oficin|manuten|manutens|manutenc|consert|concert|conssert|reparac|reparo|reparou|reparar)/;
+
+/** Words used to fuzzy-match typos ("consserto", "mecanina", "ofisina", "manutencom"...). */
+const IN_KEYS = ["mecanica", "oficina", "manutencao", "conserto", "concerto", "reparacao"];
+
 /** Message says the car LEFT the mechanic ("pegou da mecânica", "saiu da oficina", "consertado"...). */
-const LEFT_RE = /consertad|saiu da|retornou da|voltou da|pegou( [\wÀ-ÿ]+){0,3} da|retirou( [\wÀ-ÿ]+){0,3} da|liberad/i;
-const NAME_AFTER_RE = /mec[âa]nica[ \t]+([A-ZÀ-ÿ][\wÀ-ÿ]*)/i;
-const NAME_BEFORE_RE = /([A-ZÀ-ÿ][\wÀ-ÿ]*)[ \t]+mec[âa]nica/i;
+const LEFT_RE =
+  /(consertad|concertad|reparad|saiu (da|de|do)|said[ao] (da|de|do)|retornou (da|de|do)|voltou (da|de|do)|retirad[ao] (da|de|do)|retirou( \w+){0,3} (da|de|do)|pegou( \w+){0,3} (da|de|do)|liberad)/;
+
+/** Levenshtein distance, same helper style as plates.ts. */
+function distance(a: string, b: string) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0]![j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i]![j] = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length]![b.length]!;
+}
+
+/** Catches misspelled words: "consserto", "manutençom", "mecanina", "ofisina". */
+function fuzzyIn(flatText: string) {
+  for (const w of flatText.split(" ")) {
+    if (w.length < 6 || w.length > 13) continue;
+    for (const key of IN_KEYS) {
+      if (Math.abs(w.length - key.length) > 2) continue;
+      if (distance(w, key) <= 2) return true;
+    }
+  }
+  return false;
+}
+
+/** Whether a text says the vehicle is in maintenance / at the shop. */
+export function saysRepair(text: string) {
+  const f = flat(text);
+  return IN_RE.test(f) || fuzzyIn(f);
+}
+
+/** Whether a text says the vehicle already came back. */
+export function saysLeftRepair(text: string) {
+  return LEFT_RE.test(flat(text));
+}
+
+const NAME_AFTER_RE = /\b(?:mec[âa]nic[ao]|oficin[ai])[ \t]+([A-ZÀ-ÿ][\wÀ-ÿ]*)/i;
+const NAME_BEFORE_RE = /([A-ZÀ-ÿ][\wÀ-ÿ]*)[ \t]+(?:mec[âa]nic[ao]|oficin[ai])\b/i;
 
 /** Extracts the mechanic shop name ("Mecânica Maurício" or "Maurício Mecânica" → "Maurício"). */
 function shopName(text: string): string | null {
@@ -73,10 +125,10 @@ function fromMessages(v: VehicleLike, checklists: ChecklistLike[]): { state: str
   // the newest message wins: if it says the car left the mechanic, a stale "Mecânica ..." obra doesn't re-flag it
   if (last) {
     const text = [last.notes, last.raw_text, last.obra].filter(Boolean).join("\n");
-    if (LEFT_RE.test(text)) return { state: false, at, date };
-    if (RE.test(text)) return { state: shopName(text) ?? true, at, date };
+    if (saysLeftRepair(text)) return { state: false, at, date };
+    if (saysRepair(text)) return { state: shopName(text) ?? true, at, date };
   }
-  if (v.obra && RE.test(v.obra)) return { state: shopName(v.obra) ?? true, at, date };
+  if (v.obra && saysRepair(v.obra)) return { state: shopName(v.obra) ?? true, at, date };
   return { state: false, at, date };
 }
 
@@ -94,5 +146,5 @@ export const dayOf = (c: ChecklistLike) => c.checked_date ?? legacyDate(c.checke
 export function mentionsMechanic(c: ChecklistLike): boolean | null {
   if (!c.notes && !c.raw_text) return null;
   const text = [c.notes, c.raw_text, c.obra].filter(Boolean).join("\n");
-  return RE.test(text) && !LEFT_RE.test(text);
+  return saysRepair(text) && !saysLeftRepair(text);
 }

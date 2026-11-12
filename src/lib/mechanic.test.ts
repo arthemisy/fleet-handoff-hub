@@ -80,3 +80,51 @@ import { test as t2, expect as e2 } from "vitest";
 t2("'está em manutenção' na obs conta como mecânica", () => {
   e2(mm({ plate: "AAA1B23", notes: "Carro está em manutenção" })).toBe(true);
 });
+
+import { saysRepair as sr, saysLeftRepair as sl } from "./mechanic";
+import { test as t3, expect as e3 } from "vitest";
+describe("frases de manutenção aceitas", () => {
+  const ok = [
+    "em manutenção",
+    "manutenção",
+    "manutencao",
+    "manutensao",
+    "manutençom",
+    "na manutecao",
+    "conserto",
+    "concerto",
+    "no conserto",
+    "carro no concerto",
+    "consserto",
+    "consertos",
+    "na mecanica",
+    "mecanina",
+    "ofisina",
+    "na oficina",
+    "em reparo",
+    "passando por reparos",
+    "MANUTENÇÃO",
+    "esta em manutençao",
+  ];
+  for (const phrase of ok)
+    t3(`aceita "${phrase}"`, () => e3(sr(phrase)).toBe(true));
+
+  const no = [
+    "tudo certo",
+    "carro liberado",
+    "foi para a obra porto belo",
+    "km 12.500",
+    "parasol quebrado",
+    "trocar o óleo",
+    "revisar freios",
+    "pneu careca",
+  ];
+  for (const phrase of no)
+    t3(`não aceita "${phrase}"`, () => e3(sr(phrase)).toBe(false));
+
+  t3("consertado ainda significa que voltou", () => {
+    e3(sl("carro consertado")).toBe(true);
+    e3(sl("ja concertado")).toBe(true);
+    e3(sl("conserto")).toBe(false);
+  });
+});
