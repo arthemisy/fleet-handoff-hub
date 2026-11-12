@@ -111,7 +111,7 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
           <div className="grid grid-cols-2 gap-2">
             <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="h-4 w-4" />Editar</Button>
             {repair
-              ? <Button size="sm" variant="outline" onClick={() => save({ status: "ok" }, `Plataforma ${p.number} consertada`)}><CheckCircle2 className="h-4 w-4" />Consertada</Button>
+              ? <Button size="sm" variant="outline" onClick={() => save({ status: "ok", location: "Nova sede" }, `Plataforma ${p.number} consertada — voltou para a Nova sede`)}><CheckCircle2 className="h-4 w-4" />Consertada</Button>
               : <Button size="sm" variant="outline" onClick={() => save({ status: "manutencao" }, `Plataforma ${p.number} em manutenção`)}><Wrench className="h-4 w-4" />Manutenção</Button>}
           </div>
         )}
