@@ -22,6 +22,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useAskShop } from "@/components/AskShopDialog";
+import { sendVehicleToRepair } from "@/lib/send-to-repair";
+import { inMechanic, mentionsMechanic } from "@/lib/mechanic";
 
 export const Route = createFileRoute("/_authenticated/checklists")({
   head: () => ({ meta: [{ title: "Checklists · Controle de Frota" }, { name: "description", content: "Conferências de veículos lidas de mensagens e prints, salvas para consulta." }, { property: "og:title", content: "Checklists · Controle de Frota" }, { property: "og:description", content: "Conferências de veículos salvas para consulta." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -69,6 +72,7 @@ function PhotoButtons({ onFiles, disabled }: { onFiles: (files: File[]) => void;
 
 function Checklists() {
   const { data: f } = useSuspenseQuery(fleetQuery);
+  const [askShop, shopDialog] = useAskShop();
   const parse = useServerFn(parseChecklist);
   const [text, setText] = useState("");
   const [shots, setShots] = useState<Shot[]>([]);
@@ -171,6 +175,11 @@ function Checklists() {
       toast.error("A obra \"Terreno\" é só do Maicon Dias (é a garagem). Se o carro está com outro gestor, ele está saindo do terreno: informe a obra para onde ele vai.");
       return;
     }
+    let repairShop: string | null = null;
+    if (mentionsMechanic({ plate: form.plate, notes: form.notes, raw_text: text, obra: form.obra })) {
+      repairShop = await askShop(`${form.plate.trim().toUpperCase()} — a mensagem diz que está em manutenção`);
+      if (!repairShop) { toast.error("Informe a mecânica para salvar um carro em manutenção"); return; }
+    }
     setBusy("save");
     try {
       const items = reviewedItems(form.items);
@@ -193,7 +202,8 @@ function Checklists() {
       }).select("id").single();
       if (error) throw error;
       await handover(saved.id);
-      toast.success("Checklist salvo");
+      if (repairShop) await sendVehicleToRepair(form.plate, repairShop, form.checked_date || undefined);
+      toast.success(repairShop ? `Checklist salvo · carro enviado para a mecânica ${repairShop}` : "Checklist salvo");
       setForm(freshChecklist()); setText(""); setShots([]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
@@ -210,6 +220,7 @@ function Checklists() {
 
   return (
     <div className="space-y-6">
+      {shopDialog}
       <h1 className="font-display text-2xl font-extrabold">Checklist de conferência</h1>
 
       {/* 1. Vehicle identification — always the first thing on screen */}
@@ -302,6 +313,8 @@ function Checklists() {
 }
 
 function SavedChecklist({ c }: { c: Checklist }) {
+  const { data: f } = useSuspenseQuery(fleetQuery);
+  const [askShop, shopDialog] = useAskShop();
   const [open, setOpen] = useState(false);
   const isAdmin = useIsAdmin();
   const [urlMap, setUrlMap] = useState<Record<string, string>>({});
@@ -363,6 +376,12 @@ function SavedChecklist({ c }: { c: Checklist }) {
   async function saveEdit() {
     const plate = (ef.plate ?? "").trim();
     if (!plate) { toast.error("Informe a placa"); return; }
+    let repairShop: string | null = null;
+    const vNow = f.vehicles.find((x) => normPlate(x.plate) === normPlate(plate));
+    if (mentionsMechanic({ plate, notes: ef.notes, raw_text: ef.raw_text, obra: ef.obra }) && !mentionsMechanic(c) && !(vNow && inMechanic(vNow, f.checklists))) {
+      repairShop = await askShop(`${plate.toUpperCase()} — a mensagem diz que está em manutenção`);
+      if (!repairShop) { toast.error("Informe a mecânica para salvar um carro em manutenção"); return; }
+    }
     setSaving(true);
     try {
       const updatedItems = reviewedItems(ef.items);
@@ -380,6 +399,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
         attachments: [...att, ...paths],
       }).eq("id", c.id);
       if (error) throw error;
+      if (repairShop) await sendVehicleToRepair(plate, repairShop, ef.checked_date || undefined);
       toast.success("Conferência atualizada");
       setEditing(false);
       setNewShots([]);
@@ -391,6 +411,7 @@ function SavedChecklist({ c }: { c: Checklist }) {
   }
   return (
     <div className="rounded-xl border bg-card">
+      {shopDialog}
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 p-3 text-left">
         <div className="min-w-0 flex-1">
           <p className="font-display font-extrabold tracking-wide">{c.plate} <span className="font-sans text-sm font-normal text-muted-foreground">{c.model}</span> <MechanicTag plate={c.plate} /></p>

@@ -1,7 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useAskShop } from "@/components/AskShopDialog";
+import { sendVehicleToRepair } from "@/lib/send-to-repair";
+import { inMechanic } from "@/lib/mechanic";
 import { useState } from "react";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Wrench } from "lucide-react";
 import { brl, expensesForVehicle, fleetQuery } from "@/lib/fleet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +21,14 @@ export const Route = createFileRoute("/_authenticated/veiculos")({
 function Veiculos() {
   const { data: f } = useSuspenseQuery(fleetQuery);
   const [q, setQ] = useState("");
+  const qc = useQueryClient();
+  const [askShop, shopDialog] = useAskShop();
+  async function toRepair(plate: string, model: string) {
+    const shop = await askShop(`${plate} · ${model}`);
+    if (!shop) return;
+    try { await sendVehicleToRepair(plate, shop); toast.success(`${plate} enviado para a mecânica ${shop}`); qc.invalidateQueries({ queryKey: ["fleet"] }); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar"); }
+  }
   const name = (id: string | null) => f.managers.find((m) => m.id === id)?.name ?? "—";
   const rows = f.vehicles
     .map((v) => ({ v, total: expensesForVehicle(v, f.expenses).reduce((a, e) => a + Number(e.amount), 0) }))
@@ -42,10 +54,12 @@ function Veiculos() {
               </p>
             </div>
             <span className="font-bold text-primary">{brl(total)}</span>
+            {!inMechanic(v, f.checklists) && <Button variant="ghost" size="icon" aria-label={`Enviar ${v.plate} para manutenção`} title="Enviar para manutenção" onClick={() => toRepair(v.plate, v.model)}><Wrench className="h-4 w-4" /></Button>}
             <VehicleDialog vehicle={v} managers={f.managers} trigger={<Button variant="ghost" size="icon" aria-label="Editar"><Pencil className="h-4 w-4" /></Button>} />
           </div>
         ))}
       </div>
+      {shopDialog}
     </div>
   );
 }

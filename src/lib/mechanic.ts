@@ -19,7 +19,7 @@ type ChecklistLike = {
   created_at?: string | null;
 };
 
-const RE = /mec[âa]nica|oficina/i;
+const RE = /mec[âa]nica|oficina|em manuten[çc][ãa]o/i;
 /** Message says the car LEFT the mechanic ("pegou da mecânica", "saiu da oficina", "consertado"...). */
 const LEFT_RE = /consertad|saiu da|retornou da|voltou da|pegou( [\wÀ-ÿ]+){0,3} da|retirou( [\wÀ-ÿ]+){0,3} da|liberad/i;
 const NAME_AFTER_RE = /mec[âa]nica[ \t]+([A-ZÀ-ÿ][\wÀ-ÿ]*)/i;

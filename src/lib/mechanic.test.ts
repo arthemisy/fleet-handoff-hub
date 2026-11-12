@@ -74,3 +74,9 @@ it("não confunde a linha seguinte com o nome da oficina", () => {
   expect(inMechanic({ plate: "MMJ5763" }, [{ plate: "MMJ5763", raw_text: "LOCAL . MECÂNICA \nDATA. 15/10/26", checked_at: "15/10/26 11:40" }])).toBe(true);
   expect(mechanicSince({ plate: "MMJ5763" }, [{ plate: "MMJ5763", raw_text: "LOCAL . MECÂNICA \nDATA. 15/10/26", checked_at: "15/10/26 11:40" }])).toBe("2026-10-15");
 });
+
+import { mentionsMechanic as mm } from "./mechanic";
+import { test as t2, expect as e2 } from "vitest";
+t2("'está em manutenção' na obs conta como mecânica", () => {
+  e2(mm({ plate: "AAA1B23", notes: "Carro está em manutenção" })).toBe(true);
+});

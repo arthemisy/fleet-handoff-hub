@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CATALOG, platformImage, platformsQuery, type Platform } from "@/lib/platforms";
 import { fleetQuery } from "@/lib/fleet";
 import { Button } from "@/components/ui/button";
+import { useAskShop } from "@/components/AskShopDialog";
 
 export const Route = createFileRoute("/_authenticated/plataformas")({
   head: () => ({ meta: [{ title: "Plataformas · Controle de Frota" }, { name: "description", content: "Plataformas elevatórias da EletroMW: onde estão e catálogo de cada modelo." }, { property: "og:title", content: "Plataformas · Controle de Frota" }, { property: "og:description", content: "Plataformas elevatórias da EletroMW." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -47,6 +48,7 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
   const qc = useQueryClient();
   const { data: f } = useSuspenseQuery(fleetQuery);
   const [edit, setEdit] = useState(false);
+  const [askShop, shopDialog] = useAskShop();
   const [form, setForm] = useState({ location: "", manager_id: "", loaned_at: "", returned_at: "" });
   const repair = p.status === "manutencao";
   const gestor = f.managers.find((m) => m.id === p.manager_id)?.name ?? "—";
@@ -112,10 +114,11 @@ function PlatformCard({ p, onCatalog }: { p: Platform; onCatalog: () => void }) 
             <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="h-4 w-4" />Editar</Button>
             {repair
               ? <Button size="sm" variant="outline" onClick={() => save({ status: "ok", location: "Nova sede" }, `Plataforma ${p.number} consertada — voltou para a Nova sede`)}><CheckCircle2 className="h-4 w-4" />Consertada</Button>
-              : <Button size="sm" variant="outline" onClick={() => save({ status: "manutencao" }, `Plataforma ${p.number} em manutenção`)}><Wrench className="h-4 w-4" />Manutenção</Button>}
+              : <Button size="sm" variant="outline" onClick={async () => { const shop = await askShop(`Plataforma ${p.number} · ${p.model}`); if (shop) save({ status: "manutencao", location: shop }, `Plataforma ${p.number} enviada para a mecânica ${shop}`); }}><Wrench className="h-4 w-4" />Manutenção</Button>}
           </div>
         )}
       </div>
+      {shopDialog}
     </div>
   );
 }
